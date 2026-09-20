@@ -30,6 +30,8 @@ that later work packages extend a shape rather than invent one per chapter.
 | `make agent-install HOST= ROLE=` | **mutates** | Installs and enrols, preserving existing identity |
 | `make agent-status HOST= ROLE=` | reads | Agent version, last-cycle result, non-secret collector settings |
 | `make radio-backup HOST= ROLE= BACKUP_DIR=` | reads host, writes locally | Archives protocol state with a verified checksum |
+| `make radio-join-open HOST= ROLE= [MINUTES=]` | **mutates** | Opens the pairing window on one gateway, briefly |
+| `make radio-join-close HOST= ROLE=` | **mutates** | Closes the pairing window |
 | `make scenario-restore HOST= ROLE= DEVICE=` | **mutates** | Returns a lamp to its baseline; destroys nothing |
 | `make agent-remove HOST= CONFIRM=` | **mutates** | Removes the agent, keeping pairings and identity |
 | `make protocol-data-reset HOST= ROLE= CONFIRM=` | **mutates** | Destroys the radio network and every pairing |
@@ -139,8 +141,7 @@ decision.
 ## Still proposals
 
 These remain unimplemented and are labelled as such wherever the walkthrough mentions
-them: `radio-join-open` / `radio-join-close` (pairing windows — open them from the
-protocol UI meanwhile), `ff-access-check`, the control-plane-side views `ff-gateway` /
+them: `ff-access-check`, the control-plane-side views `ff-gateway` /
 `ff-devices` / `ff-health`, the `ff-lamp-*` wrappers, `ff-run` / `ff-command` /
 `ff-observe`, `ff-exercise-record`, `evidence-bundle`, and `agent-enroll-fresh`.
 
