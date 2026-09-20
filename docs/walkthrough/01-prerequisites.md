@@ -18,7 +18,7 @@ being asked.
 
 | Item | Per gateway | Notes |
 |---|---|---|
-| Raspberry Pi | 1 | 64-bit capable, with a power supply and SD card |
+| Raspberry Pi | 1 | Raspberry Pi 4 Model B, with a power supply and SD card |
 | Network | 1 | Ethernet or Wi-Fi. No fixed subnet, no VLAN, no router changes |
 | USB radio adapter | 1 | A Zigbee **coordinator**, or a Z-Wave **controller** |
 | Smart wallplug | 1 | Matching the radio protocol, with a controllable relay |
@@ -51,7 +51,7 @@ Each Pi must be **booted, updated, reachable over SSH, and have its radio adapte
 plugged in with the stable by-id path recorded.**
 
 Getting there is standard Raspberry Pi work and is documented separately:
-**[Imaging a gateway Pi](../raspberry-pi-image.md)**. Do that now if you have not already.
+**[Imaging a gateway Pi](../gateway-os-image.md)**. Do that now if you have not already.
 
 ## Your inventory
 
@@ -77,7 +77,8 @@ problems this lab is about become visible.
 
 ## You are ready when
 
-- [ ] Each Pi boots, answers SSH with a key, reports `aarch64`, and has working `sudo`
+- [ ] Each Pi boots, answers SSH with a key, reports `aarch64`, has finished `cloud-init`,
+      and has working passwordless `sudo`
 - [ ] Each radio adapter appears under `/dev/serial/by-id/` and you have recorded the path
 - [ ] Each wallplug is powered, with a lamp in it, near its gateway and visible from where
       you sit

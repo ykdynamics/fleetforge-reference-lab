@@ -36,10 +36,10 @@ somebody's chat history.
 
 | | |
 |---|---|
-| **Gateways** | 1–2 Raspberry Pi (64-bit capable), each with a power supply, SD card and network |
+| **Gateways** | 1–2 Raspberry Pi 4 Model B, each with a power supply, SD card and network |
 | **Radios** | A Zigbee coordinator USB stick, and/or a Z-Wave controller USB stick |
 | **Devices** | One smart wallplug per role, and a lamp to plug into it |
-| **OS** | Raspberry Pi OS Lite, 64-bit, already imaged and reachable over SSH |
+| **OS** | Ubuntu Server 24.04 LTS (64-bit), already imaged and reachable over SSH |
 | **Workstation** | Linux or macOS with `make`, `git`, `ssh` and Ansible |
 | **FleetForge** | Control-plane access **and** agent artifacts — neither is public; read [Software access](docs/software-access.md) first |
 
@@ -78,21 +78,23 @@ Read it in order: [the walkthrough](docs/walkthrough/README.md).
 | Lab contract, architecture and scope | **Available** — [architecture-and-scope.md](docs/architecture-and-scope.md) |
 | Ordered walkthrough (5 chapters) | **Available as structure**; standalone and FleetForge steps are marked planned |
 | Prerequisites and Pi imaging | **Available and runnable** — standard OS steps, no repo code needed |
+| Read-only gateway preflight | **Available and runnable** — `make preflight HOST= ROLE=` |
 | Example inventory | **Available** — [inventory/](inventory/) |
 | Operator command contract | **Available as a contract** — [command-contract.md](docs/command-contract.md); no target is implemented |
 | Evidence conventions | **Available** — [evidence-conventions.md](docs/evidence-conventions.md) |
 | Software-access requirements | **Available** — [software-access.md](docs/software-access.md) |
-| Host provisioning (Make + Ansible) | **Planned** — WP-02 |
+| Host provisioning (Make + Ansible) | **Planned** — WP-02, next slice |
 | Standalone Zigbee / Z-Wave stacks | **Planned** — WP-03 |
 | FleetForge agent integration | **Planned** — WP-04 |
 | Guided lamp exercise and evidence | **Planned** — WP-05 |
 | Reset, rebuild and first-use qualification | **Planned** — WP-06 |
 
-The only commands this repository implements today are its own documentation checks:
+The commands this repository implements today:
 
 ```sh
-make help     # what is actually implemented here
-make check    # validate relative links and example-file syntax
+make help                                   # what is actually implemented here
+make check                                  # validate links and example-file syntax
+make preflight HOST=<alias> ROLE=<role>     # read-only inspection of one gateway
 ```
 
 Every operator command named in the [command contract](docs/command-contract.md) is a

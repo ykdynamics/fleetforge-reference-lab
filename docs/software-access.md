@@ -9,7 +9,7 @@ This repository being public says nothing about FleetForge being public.
 
 | Component | Source | Public? |
 |---|---|---|
-| Raspberry Pi OS Lite (64-bit) | raspberrypi.com | Yes |
+| Ubuntu Server 24.04 LTS (arm64) | ubuntu.com | Yes |
 | Docker Engine + Compose plugin | docker.com | Yes |
 | MQTT broker (Mosquitto) | Docker Hub | Yes |
 | Zigbee2MQTT | Docker Hub | Yes |
