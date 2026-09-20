@@ -1,0 +1,166 @@
+# Deploy the protocol services for one gateway role.
+#
+#   make stack-up     HOST=<alias> ROLE=<zigbee|zwave>
+#   make stack-status HOST=<alias> ROLE=<zigbee|zwave>
+#
+# Places the Compose file and service configuration, then (unless stack_deploy_only)
+# starts the role's profile.
+#
+# What it never does: overwrite a protocol service's own state. Zigbee2MQTT and
+# Z-Wave JS own their data directories after first start -- the network key, the paired
+# devices, the controller's view of the mesh. Re-running this must cost nobody their
+# radio network.
+---
+- name: Deploy the protocol stack for a lab gateway
+  hosts: all
+  become: true
+
+  vars:
+    lab_root: "{{ hostvars[inventory_hostname].lab_root | default('/opt/fleetforge-lab') }}"
+    lab_user: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    lab_bind_address: "{{ hostvars[inventory_hostname].lab_bind_address | default('127.0.0.1') }}"
+    lab_timezone: "{{ hostvars[inventory_hostname].lab_timezone | default('Etc/UTC') }}"
+    role: "{{ hostvars[inventory_hostname].role }}"
+    radio_adapter: "{{ hostvars[inventory_hostname].radio_adapter }}"
+    radio_adapter_driver: "{{ hostvars[inventory_hostname].radio_adapter_driver | default('zstack') }}"
+    mqtt_port: "{{ (hostvars[inventory_hostname].mqtt_endpoint | default('127.0.0.1:1883')).split(':')[-1] }}"
+    protocol_ui_port: "{{ hostvars[inventory_hostname].protocol_ui_port }}"
+    zwavejs_ws_port: "{{ hostvars[inventory_hostname].zwavejs_ws_port | default(3000) }}"
+    container_log_max_size: "10m"
+    container_log_max_files: 3
+    # Pinned. Floating tags make a lab that worked yesterday fail today for reasons
+    # unrelated to anything you changed. Recorded in docs/hardware-and-versions.md.
+    mosquitto_image: "eclipse-mosquitto:2.1.2-alpine"
+    zigbee2mqtt_image: "koenkk/zigbee2mqtt:2.14.1"
+    zwavejs_image: "zwavejs/zwave-js-ui:11.24.1"
+    stack_deploy_only: false
+
+  pre_tasks:
+    - name: Refuse to act on more than one host at a time
+      ansible.builtin.assert:
+        that: ansible_play_hosts | length == 1
+        fail_msg: >-
+          This playbook acts on one named host at a time, but
+          {{ ansible_play_hosts | length }} were selected
+          ({{ ansible_play_hosts | join(', ') }}). Pass --limit <host>.
+        quiet: true
+
+    - name: Require a radio adapter in the inventory
+      ansible.builtin.assert:
+        that:
+          - radio_adapter | length > 0
+        fail_msg: >-
+          {{ inventory_hostname }} has no radio_adapter set. Run
+          `ls -l /dev/serial/by-id/` on the host and put the full by-id path in your
+          inventory.
+        quiet: true
+
+    - name: Confirm the configured adapter exists on the host
+      ansible.builtin.stat:
+        path: "{{ radio_adapter }}"
+      register: adapter_stat
+
+    - name: Fail when the configured adapter is missing
+      ansible.builtin.assert:
+        that: adapter_stat.stat.exists
+        fail_msg: >-
+          The configured adapter {{ radio_adapter }} does not exist on
+          {{ inventory_hostname }}. Check it against `ls -l /dev/serial/by-id/`.
+        quiet: true
+
+  tasks:
+    - name: Create the stack directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ lab_user }}"
+        group: "{{ lab_user }}"
+        mode: "0750"
+      loop:
+        - "{{ lab_root }}/config"
+        - "{{ lab_root }}/data"
+        - "{{ lab_root }}/data/mosquitto"
+        - "{{ lab_root }}/data/{{ 'zigbee2mqtt' if role == 'zigbee' else 'zwave-js-ui' }}"
+
+    - name: Generate a Z-Wave JS UI session secret
+      when: role == 'zwave'
+      block:
+        - name: Check for an existing session secret
+          ansible.builtin.stat:
+            path: "{{ lab_root }}/config/zwavejs-session-secret"
+          register: secret_stat
+
+        - name: Create a session secret on first deploy
+          when: not secret_stat.stat.exists
+          ansible.builtin.copy:
+            # Per host, generated here, never a shared committed value. Rotating it only
+            # logs UI sessions out; it is not radio or FleetForge material.
+            content: "{{ lookup('community.general.random_string', length=48, special=false) }}"
+            dest: "{{ lab_root }}/config/zwavejs-session-secret"
+            owner: "{{ lab_user }}"
+            group: "{{ lab_user }}"
+            mode: "0600"
+            force: false
+
+        - name: Read the session secret
+          ansible.builtin.slurp:
+            src: "{{ lab_root }}/config/zwavejs-session-secret"
+          register: secret_raw
+
+    - name: Place the broker configuration
+      ansible.builtin.template:
+        src: mosquitto.conf.j2
+        dest: "{{ lab_root }}/config/mosquitto.conf"
+        owner: "{{ lab_user }}"
+        group: "{{ lab_user }}"
+        mode: "0640"
+
+    # force: false is the whole point. Zigbee2MQTT writes its generated network key and
+    # its paired devices into this file; replacing it would destroy the Zigbee network.
+    - name: Place the initial Zigbee2MQTT configuration, only if absent
+      when: role == 'zigbee'
+      ansible.builtin.template:
+        src: zigbee2mqtt-configuration.yaml.j2
+        dest: "{{ lab_root }}/data/zigbee2mqtt/configuration.yaml"
+        owner: "{{ lab_user }}"
+        group: "{{ lab_user }}"
+        mode: "0640"
+        force: false
+
+    - name: Place the Compose file
+      ansible.builtin.template:
+        src: docker-compose.yml.j2
+        dest: "{{ lab_root }}/compose/docker-compose.yml"
+        owner: "{{ lab_user }}"
+        group: "{{ lab_user }}"
+        mode: "0640"
+      vars:
+        zwavejs_session_secret: "{{ (secret_raw.content | b64decode) if role == 'zwave' else '' }}"
+
+    - name: Validate the Compose file
+      ansible.builtin.command:
+        cmd: docker compose --profile {{ role }} config --quiet
+        chdir: "{{ lab_root }}/compose"
+      changed_when: false
+
+    - name: Start the protocol services
+      when: not stack_deploy_only
+      ansible.builtin.command:
+        cmd: docker compose --profile {{ role }} up -d
+        chdir: "{{ lab_root }}/compose"
+      register: compose_up
+      changed_when: "'Started' in compose_up.stderr or 'Created' in compose_up.stderr"
+
+  post_tasks:
+    - name: Report the stack state
+      when: not stack_deploy_only
+      ansible.builtin.command:
+        cmd: docker compose --profile {{ role }} ps --format '{% raw %}{{.Service}}\t{{.Status}}{% endraw %}'
+        chdir: "{{ lab_root }}/compose"
+      register: compose_ps
+      changed_when: false
+
+    - name: Show the stack state
+      when: not stack_deploy_only
+      ansible.builtin.debug:
+        msg: "{{ compose_ps.stdout_lines }}"

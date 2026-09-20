@@ -10,7 +10,7 @@ HOST ?=
 ROLE ?=
 
 .DEFAULT_GOAL := help
-.PHONY: help check check-links check-examples test-preflight test-provision preflight provision-plan provision
+.PHONY: help check check-links check-examples test-preflight test-provision preflight provision-plan provision stack-config stack-up stack-status stack-logs stack-down
 
 help: ## What this repository can actually run today
 	@echo 'FleetForge Reference Lab'
@@ -45,3 +45,18 @@ provision-plan: ## Show what provisioning would change, read-only (HOST= ROLE= [
 
 provision: ## Provision one gateway — CHANGES THE HOST (HOST= ROLE= [INVENTORY=])
 	@MODE=apply ./scripts/provision.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+stack-config: ## Render and validate the protocol stack config (HOST= ROLE= [INVENTORY=])
+	@ACTION=config ./scripts/stack.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+stack-up: ## Deploy and start the protocol services (HOST= ROLE= [INVENTORY=])
+	@ACTION=up ./scripts/stack.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+stack-status: ## Service state, log bounds and broker reachability (HOST= ROLE= [INVENTORY=])
+	@ACTION=status ./scripts/stack.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+stack-logs: ## Tail the role's service logs (HOST= ROLE= [INVENTORY=])
+	@ACTION=logs ./scripts/stack.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+stack-down: ## Stop the services, keeping all data and pairings (HOST= ROLE= [INVENTORY=])
+	@ACTION=down ./scripts/stack.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"

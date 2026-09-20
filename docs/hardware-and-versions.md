@@ -26,12 +26,14 @@ Status values: **Qualified** (this repository's procedure was run against it and
 |---|---|---|---|
 | Raspberry Pi model | 4 Model B | In use | The lab baseline. Other models are untested here |
 | Ubuntu Server LTS (arm64) | 24.04 | In use | The supported baseline. `make preflight` warns on anything else |
-| Docker Engine / Compose plugin | — | Unknown | To be pinned in WP-02 |
-| Mosquitto | — | Unknown | To be pinned in WP-03 |
-| Zigbee2MQTT | — | Unknown | To be pinned in WP-03 |
-| Z-Wave JS UI | — | Unknown | To be pinned in WP-03 |
-| Zigbee coordinator adapter | Sonoff ZBDongle-P (CC2652P, CP210x bridge) | Qualified (preflight) | Enumerated and resolved by `make preflight`. Driver `zstack`. Radio not yet exercised |
-| Z-Wave controller adapter | Zooz 800 Z-Wave Stick (CH9102 bridge) | Qualified (preflight) | Enumerated and resolved by `make preflight`. Radio not yet exercised |
+| Docker Engine | 29.8.1 | Qualified (provisioning) | Installed by `make provision` on both hosts |
+| Docker Compose plugin | 5.5.1 | Qualified (provisioning) | Installed by `make provision` on both hosts |
+| Mosquitto | 2.1.2-alpine | Qualified (service start) | Started and answered a local subscribe on both hosts |
+| Zigbee2MQTT | 2.14.1 | Qualified (coordinator start) | Started; coordinator answered |
+| Z-Wave JS UI | 11.24.1 | Qualified (controller start) | Started; driver ready, controller identified |
+| zwave-js (driver) | 15.29.0 | Qualified (controller start) | Bundled with Z-Wave JS UI 11.24.1 |
+| Zigbee coordinator adapter | Sonoff ZBDongle-P (CC2652P, CP210x bridge) | Qualified (coordinator start) | Driver `zstack`; reports `ZStack3x0`, firmware revision 20210708 |
+| Z-Wave controller adapter | Zooz ZST39 LR (800 Series Long Range) | Qualified (controller start) | Identified by zwave-js as node type **Controller** |
 | Zigbee wallplug | — | Unknown | To be pinned in WP-03 |
 | Z-Wave wallplug | — | Unknown | To be pinned in WP-03 |
 | FleetForge control plane | — | Unknown | To be pinned in WP-04 |
