@@ -154,8 +154,43 @@ being rejected. The agent is not wrong; it is trusting the CA it was enrolled ag
 
 **A consequence worth planning for:** moving an existing estate onto TLS with a *new*
 device CA invalidates the certificates the agents hold, so they must re-enrol — which
-mints new gateway records and leaves the old ones behind. Decide the device CA before
-enrolling anything you intend to keep.
+mints new gateway records and strands the old ones. Decide the device CA before enrolling
+anything you intend to keep.
+
+### The setup that works
+
+The third constraint sounds like it demands a certificate authority and a signing
+ceremony. It does not, because the control plane will issue its own server certificate
+from the device CA when you do not supply one:
+
+```sh
+openssl genpkey -algorithm ed25519 -out device-ca.key   # PKCS#8, the format expected
+```
+
+Point the control plane at that key, enable agent mTLS, name the host the gateways reach
+it on — and **leave the server certificate and key unset**. The chain is then correct by
+construction: the certificate the API presents is minted by the same CA the agents receive
+at enrolment. Supplying your own server certificate is where the first attempt went wrong.
+
+The trust anchor the agents pin is then the device CA's certificate, which the control
+plane serves from its own PKI endpoint. Put that file's path in `ca_file` and the agent
+verifies against it.
+
+Run on the bench, both roles:
+
+```text
+agent registered   gateway_id=…
+heartbeat accepted
+heartbeat accepted
+```
+
+Enrolment, heartbeat and device operation all over HTTPS, with a pinned CA on the way in
+and a client certificate afterwards.
+
+**One trap that is not FleetForge's.** macOS ships a LibreSSL `curl` that cannot complete
+a handshake against an Ed25519 CA — it fails with `sslv3 alert handshake failure` while a
+modern OpenSSL client on the same endpoint succeeds. The server is fine. Check your client
+before investigating the control plane.
 
 Also: a plain HTTP reverse proxy cannot front the agent plane. Agent mTLS is enforced by
 inspecting the verified TLS peer certificate in the API process, and a proxy leaves that
