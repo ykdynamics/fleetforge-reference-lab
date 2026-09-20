@@ -10,7 +10,7 @@ HOST ?=
 ROLE ?=
 
 .DEFAULT_GOAL := help
-.PHONY: help check check-links check-examples test-preflight test-provision preflight provision-plan provision stack-config stack-up stack-status stack-logs stack-down radio-devices lamp-off lamp-on agent-plan agent-install agent-status radio-backup
+.PHONY: help check check-links check-examples test-preflight test-provision preflight provision-plan provision stack-config stack-up stack-status stack-logs stack-down radio-devices lamp-off lamp-on agent-plan agent-install agent-status radio-backup scenario-restore agent-remove protocol-data-reset host-reset
 
 help: ## What this repository can actually run today
 	@echo 'FleetForge Reference Lab'
@@ -81,3 +81,15 @@ agent-status: ## Agent version, last-cycle result and collector settings (HOST= 
 
 radio-backup: ## Archive protocol state with a checksum manifest (HOST= ROLE= BACKUP_DIR= [DRY_RUN=1])
 	@./scripts/radio-backup.sh "$(HOST)" "$(ROLE)" "$(BACKUP_DIR)" "$(INVENTORY)"
+
+scenario-restore: ## Return a lamp to its documented baseline — destroys nothing (HOST= ROLE= DEVICE=)
+	@ACTION=scenario-restore ./scripts/reset.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+agent-remove: ## Remove the FleetForge agent, keeping pairings and identity (HOST= CONFIRM=HOST)
+	@ACTION=agent-remove ./scripts/reset.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+protocol-data-reset: ## DESTROYS the radio network and every pairing (HOST= ROLE= CONFIRM=HOST)
+	@ACTION=protocol-data-reset ./scripts/reset.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+host-reset: ## DESTROYS everything the lab installed on one host (HOST= CONFIRM=HOST)
+	@ACTION=host-reset ./scripts/reset.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
