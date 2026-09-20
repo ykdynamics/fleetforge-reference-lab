@@ -17,13 +17,19 @@ in chapter 3.
 Agree the outcome with yourself in advance: what will count as the lamp having gone dark,
 and who is going to be looking at it.
 
-## 4.1 Switch it off — planned (WP-05)
+## 4.1 Switch it off
 
-> **Planned.** Proposed target, not implemented.
->
-> ```text
-> make ff-lamp-off HOST=<alias> DEVICE=<alias> KEY=<your-idempotency-key>
-> ```
+> **Planned (WP-05).** A `make ff-lamp-off` wrapper is proposed but not implemented. The
+> exercise below was run through FleetForge's own API, which is what the wrapper would
+> call — and using the API directly is worth doing once, because it shows you exactly
+> what the product returns rather than what a wrapper chose to show you.
+
+```text
+POST /v1/capability-runs
+Idempotency-Key: <your key>
+{ "capability_key": "mqtt.publish",
+  "input": { "gateway_id": "<gateway>", "topic": "<device set topic>", "payload": "…" } }
+```
 
 Both the target and the device are explicit. Nothing is inferred, and there is no "all
 devices" form.

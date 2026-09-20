@@ -9,10 +9,10 @@ see, and what commonly goes wrong.
 | # | Chapter | Status |
 |---|---|---|
 | 1 | [Prerequisites and hardware](01-prerequisites.md) | **Usable now** |
-| 2 | [The standalone estate](02-standalone-estate.md) | Structure and concepts now; commands planned (WP-02, WP-03) |
-| 3 | [FleetForge integration](03-fleetforge-integration.md) | Structure and concepts now; commands planned (WP-04) |
-| 4 | [Operation and evidence](04-operation-and-evidence.md) | Structure and concepts now; commands planned (WP-05) |
-| 5 | [Reset and repeat](05-reset-and-repeat.md) | Structure and concepts now; commands planned (WP-06) |
+| 2 | [The standalone estate](02-standalone-estate.md) | **Runnable** — provisioning, stacks, pairing, lamp baseline |
+| 3 | [FleetForge integration](03-fleetforge-integration.md) | **Runnable** — agent install and enrolment |
+| 4 | [Operation and evidence](04-operation-and-evidence.md) | **Runnable** — operated through FleetForge's API |
+| 5 | [Reset and repeat](05-reset-and-repeat.md) | **Runnable** — backup and the four resets |
 
 ## How to read the status labels
 
