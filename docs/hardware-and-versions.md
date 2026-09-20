@@ -55,6 +55,7 @@ from what version is installed:
 | Devices visible in FleetForge with observation timestamps | **PASS** — plug visible, attributed to its gateway | **PASS** — node visible, attributed to its gateway |
 | Lamp OFF/ON **through FleetForge** | **PASS** — OFF and ON, human-observed | **PASS** — OFF and ON, human-observed, after [fleetforge#415](https://github.com/ykdynamics/fleetforge/issues/415) |
 | Re-run integration preserving gateway identity | **PASS** — no new record created | **PASS** — upgraded in place, identity kept |
+| Protocol-state backup with verified checksum | **PASS** — archived, verified, service restarted cleanly | **PASS** — archived, verified, service restarted cleanly |
 | Reset and rebuild from published instructions alone | Unknown | Unknown |
 
 Both columns are filled in independently. See

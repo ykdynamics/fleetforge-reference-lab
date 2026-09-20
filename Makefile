@@ -10,7 +10,7 @@ HOST ?=
 ROLE ?=
 
 .DEFAULT_GOAL := help
-.PHONY: help check check-links check-examples test-preflight test-provision preflight provision-plan provision stack-config stack-up stack-status stack-logs stack-down radio-devices lamp-off lamp-on agent-plan agent-install agent-status
+.PHONY: help check check-links check-examples test-preflight test-provision preflight provision-plan provision stack-config stack-up stack-status stack-logs stack-down radio-devices lamp-off lamp-on agent-plan agent-install agent-status radio-backup
 
 help: ## What this repository can actually run today
 	@echo 'FleetForge Reference Lab'
@@ -78,3 +78,6 @@ agent-install: ## Install and enrol the agent, preserving existing identity (HOS
 
 agent-status: ## Agent version, last-cycle result and collector settings (HOST= ROLE=)
 	@ACTION=status ./scripts/agent.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+radio-backup: ## Archive protocol state with a checksum manifest (HOST= ROLE= BACKUP_DIR= [DRY_RUN=1])
+	@./scripts/radio-backup.sh "$(HOST)" "$(ROLE)" "$(BACKUP_DIR)" "$(INVENTORY)"

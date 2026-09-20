@@ -79,18 +79,45 @@ Discarding identity is opt-in (`PURGE_IDENTITY=1`), and it means the host will e
 **This destroys the radio network and every pairing on that gateway.** Every device must be
 physically re-paired afterwards, which means handling each one.
 
-Take a backup first:
+Take a backup first — this one is available now:
 
-> **Planned.** Proposed target, not implemented.
->
-> ```text
-> make radio-backup HOST=<alias> ROLE=<role> BACKUP_DIR=<private-path> DRY_RUN=1
-> make radio-backup HOST=<alias> ROLE=<role> BACKUP_DIR=<private-path>
-> ```
+```sh
+make radio-backup HOST=<alias> ROLE=<role> BACKUP_DIR=<private-path> DRY_RUN=1
+make radio-backup HOST=<alias> ROLE=<role> BACKUP_DIR=<private-path> STOP_SERVICES=1
+```
 
-The backup archives the protocol service's persistent state to a private path with a
-checksum manifest, excludes agent enrolment state and secrets, and never prints key
-material. Run the dry run first and read what it says it will take.
+`BACKUP_DIR` must be an absolute path outside this repository; a relative one is refused.
+The dry run reports the size and file count and touches nothing else — it never prints the
+directory's contents, because that is where the network key lives.
+
+`STOP_SERVICES=1` stops the radio service for the archive and starts it again afterwards.
+Worth using: a running service can be mid-write, and an archive taken underneath it may
+restore to a state the service never actually had.
+
+The archive is streamed over SSH and written on your machine, never staged on the gateway
+— a later disk-space problem on that host is exactly when you would want the backup
+somewhere else. It lands mode `0600` in a `0700` directory, with a SHA-256 manifest that
+is **verified after writing**, because a checksum nobody checks is decoration.
+
+What a run looks like:
+
+```text
+-- verifying --
+PASS archive is readable (16 entries)
+PASS checksum verified after writing
+```
+
+**The agent's enrolment identity is deliberately not in the archive.** It has a different
+lifecycle and a different owner, and sweeping it into a radio backup invites restoring a
+gateway's identity from a stale copy and minting a confusing duplicate. Both roles were
+checked for this on the bench: neither archive contains the enrolment file.
+
+What each role's archive actually holds, confirmed by listing the entries:
+
+| | Contents that matter |
+|---|---|
+| Zigbee | `coordinator_backup.json`, `database.db`, `configuration.yaml` (which carries the network key) |
+| Z-Wave | `nodes.json`, the controller's node database keyed by home id, `settings.json` |
 
 **On what a backup can actually restore.** It restores the protocol service's *stored
 state*. It is not a universal promise of radio-network restoration: some adapters hold
