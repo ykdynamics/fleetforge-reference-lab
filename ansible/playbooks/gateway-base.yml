@@ -1,0 +1,200 @@
+# Day-zero gateway provisioning.
+#
+#   make provision-plan HOST=<alias> ROLE=<zigbee|zwave>   # read-only, shows the diff
+#   make provision      HOST=<alias> ROLE=<zigbee|zwave>   # applies it
+#
+# What this deliberately does NOT do:
+#   - touch host networking, DNS or firewall rules
+#   - overwrite an existing lab stack or its data
+#   - install or enrol the FleetForge agent (that is WP-04)
+#   - start any protocol service (that is WP-03)
+#
+# Re-running is safe and preserves data. It reports whether it set a host up fresh or
+# adopted one that already had a stack.
+---
+- name: Provision a lab gateway host
+  # `all` plus a mandatory --limit, not a templated hosts: line. The driver always
+  # passes --limit, and the assertion below refuses a run that selected more than one
+  # host -- so the "one named host at a time" rule holds even when the playbook is run
+  # directly, rather than depending on the wrapper to enforce it.
+  hosts: all
+  become: true
+
+  vars:
+    lab_root: "{{ hostvars[inventory_hostname].lab_root | default('/opt/fleetforge-lab') }}"
+    lab_user: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    # Docker is installed from Docker's own repository. It is NOT pinned by default:
+    # pinning an engine version on a rolling upstream repo tends to break reinstalls
+    # months later for reasons unrelated to the lab. Set docker_version to pin.
+    docker_version: ""
+    # Re-running provisioning does not upgrade Docker unless asked. An engine upgrade
+    # restarts the daemon, which stops every running container -- not something a
+    # "make sure this host is set up" command should do as a side effect.
+    docker_upgrade: false
+    container_log_max_size: "10m"
+    container_log_max_files: 3
+
+  pre_tasks:
+    - name: Refuse to provision more than one host at a time
+      ansible.builtin.assert:
+        that: ansible_play_hosts | length == 1
+        fail_msg: >-
+          This playbook provisions one named host at a time, but
+          {{ ansible_play_hosts | length }} were selected
+          ({{ ansible_play_hosts | join(', ') }}). Pass --limit <host>.
+        quiet: true
+
+    # Fail closed on the baseline rather than provisioning something untested. These
+    # mirror the preflight checks so that `provision` alone is still safe to run.
+    - name: Assert the architecture is arm64
+      ansible.builtin.assert:
+        that: ansible_architecture == 'aarch64'
+        fail_msg: >-
+          This host reports {{ ansible_architecture }}. The lab's container images are
+          built for arm64 only.
+        quiet: true
+
+    - name: Warn when the OS is not the qualified baseline
+      ansible.builtin.debug:
+        msg: >-
+          WARN {{ ansible_distribution }} {{ ansible_distribution_version }} is not the
+          qualified baseline (Ubuntu 24.04). Continuing, but this configuration is untested.
+      when: not (ansible_distribution == 'Ubuntu' and ansible_distribution_version is version('24.04', '=='))
+
+    - name: Detect an existing lab installation
+      ansible.builtin.stat:
+        path: "{{ lab_root }}"
+      register: lab_root_stat
+
+    - name: Report fresh setup or adoption
+      ansible.builtin.debug:
+        msg: >-
+          {{ 'ADOPTING an existing lab installation at ' ~ lab_root ~ ' — existing data is preserved'
+             if lab_root_stat.stat.exists
+             else 'FRESH setup — no existing lab installation at ' ~ lab_root }}
+
+  tasks:
+    # --- Services that claim USB serial adapters --------------------------------
+    # Both open USB serial devices to probe them, and a port held open during probing
+    # is what makes a healthy radio fail to start. udev tags these adapters as
+    # ModemManager probe candidates, so this is eligibility being removed, not a
+    # theoretical precaution. Masking rather than merely stopping: a stop does not
+    # survive the next reboot or a dependency pulling the unit back up.
+    - name: Mask services that claim USB serial adapters
+      ansible.builtin.systemd_service:
+        name: "{{ item }}"
+        state: stopped
+        enabled: false
+        masked: true
+      loop:
+        - ModemManager
+        - brltty
+      register: masked_serial_claimants
+      failed_when:
+        - masked_serial_claimants is failed
+        - '"Could not find the requested service" not in (masked_serial_claimants.msg | default(""))'
+
+    # --- Docker -----------------------------------------------------------------
+    - name: Install prerequisites for the Docker repository
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Create the apt keyring directory
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    - name: Install the Docker apt key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+
+    - name: Add the Docker repository
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [arch=arm64 signed-by=/etc/apt/keyrings/docker.asc]
+          https://download.docker.com/linux/ubuntu
+          {{ ansible_distribution_release }} stable
+        filename: docker
+        state: present
+
+    - name: Install Docker Engine and the Compose plugin
+      ansible.builtin.apt:
+        name: >-
+          {{ ['docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-compose-plugin']
+             | map('regex_replace', '$', '=' ~ docker_version if docker_version else '')
+             | list }}
+        state: "{{ 'latest' if docker_upgrade else 'present' }}"
+        update_cache: true
+
+    # Host-wide log bounds. The per-service Compose settings cover the lab's own
+    # containers; this covers anything else started on the host, so one forgotten
+    # container cannot fill the root filesystem. That is not hypothetical: an unbounded
+    # radio-service log has filled a gateway's disk and stopped its broker, while the
+    # host stayed up and kept looking healthy.
+    - name: Configure the Docker daemon log bounds
+      ansible.builtin.copy:
+        content: |
+          {
+            "log-driver": "json-file",
+            "log-opts": {
+              "max-size": "{{ container_log_max_size }}",
+              "max-file": "{{ container_log_max_files | string }}"
+            }
+          }
+        dest: /etc/docker/daemon.json
+        mode: "0644"
+      notify: Restart Docker
+
+    - name: Add the lab user to the docker group
+      ansible.builtin.user:
+        name: "{{ lab_user }}"
+        groups: docker
+        append: true
+
+    # --- Lab directories --------------------------------------------------------
+    # Created but never emptied: re-running provisioning must not cost anyone their
+    # radio network.
+    - name: Create the lab directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ lab_user }}"
+        group: "{{ lab_user }}"
+        mode: "0750"
+      loop:
+        - "{{ lab_root }}"
+        - "{{ lab_root }}/compose"
+
+    - name: Ensure Docker is running
+      ansible.builtin.systemd_service:
+        name: docker
+        state: started
+        enabled: true
+
+  post_tasks:
+    - name: Record what was installed
+      ansible.builtin.command: docker --version
+      changed_when: false
+      register: docker_installed
+
+    - name: Report the provisioned state
+      ansible.builtin.debug:
+        msg:
+          - "PASS {{ docker_installed.stdout }}"
+          - "PASS lab root: {{ lab_root }}"
+          - "NOTE the docker group applies to new logins only — reconnect before running docker as {{ lab_user }}"
+          - "NEXT re-run: make preflight HOST={{ inventory_hostname }} ROLE=<role>"
+
+  handlers:
+    - name: Restart Docker
+      ansible.builtin.systemd_service:
+        name: docker
+        state: restarted

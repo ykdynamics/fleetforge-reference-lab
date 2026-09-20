@@ -17,9 +17,20 @@ that later work packages extend a shape rather than invent one per chapter.
 | `make check-links` | reads | Validates every relative Markdown link resolves to a file |
 | `make check-examples` | reads | Parses every `*.example.yml` as YAML |
 | `make preflight HOST= ROLE=` | reads | Read-only inspection of one gateway over SSH |
+| `make provision-plan HOST= ROLE=` | reads | Shows what provisioning would change on one gateway |
+| `make provision HOST= ROLE=` | **mutates** | Provisions one named gateway |
 
 `make check` exits non-zero on the first failing check and prints the offending file and
 line. It touches no host and no network.
+
+`make provision-plan` and `make provision` configure one named host: they mask the services
+that claim USB serial adapters, install Docker and the Compose plugin, set host-wide
+container log bounds, and create the lab directories. They do **not** touch host
+networking, start a protocol service, install the FleetForge agent, or empty an existing
+lab directory. Re-running preserves data, and the run reports whether it set the host up
+fresh or adopted an existing installation. Docker is not upgraded on a re-run unless
+`docker_upgrade=true` is passed, because an engine upgrade restarts the daemon and stops
+every running container.
 
 `make preflight` is the first implemented lab target. It resolves the host from your
 inventory, connects over SSH and reports PASS/WARN/FAIL/UNKNOWN for the host baseline,
@@ -72,8 +83,6 @@ step that cannot determine something reports `UNKNOWN` — never a cheerful defa
 
 | Target | Args | Reads/Mutates | Prerequisites | Expected output | On failure |
 |---|---|---|---|---|---|
-| `provision-plan` | `HOST` `ROLE` | reads | `preflight` clean | The diff provisioning *would* apply — packages, directories, permissions, units. Changes nothing | Exit `1` if the plan cannot be computed |
-| `provision` | `HOST` `ROLE` | **mutates** | `provision-plan` reviewed | Applies the plan. Reports whether this was a fresh setup or adoption of an existing host. Re-running is idempotent and preserves data | Stops at the failing task with Ansible's own error. Never partially rewrites host networking |
 | `host-info` | `HOST` | reads | SSH reachable | Kernel, architecture, disk, Docker version, radio adapters by-id, installed lab components. No secrets | Exit `1` if unreachable |
 
 `provision` never modifies host networking, never overwrites an existing protocol stack

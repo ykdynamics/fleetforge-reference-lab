@@ -24,6 +24,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq shellcheck python3-yaml ansible-core
+          pipx install ansible-lint
 
       - name: Shell syntax and lint
         run: |
@@ -37,6 +38,16 @@ jobs:
 
       - name: Links and example files
         run: make check
+
+      - name: Provisioning playbook syntax and lint
+        run: |
+          ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook \
+            -i inventory/inventory.example.yml \
+            --syntax-check ansible/playbooks/gateway-base.yml
+          ansible-lint ansible/playbooks/gateway-base.yml
+
+      - name: Provisioning guards and failure paths (simulated)
+        run: make test-provision
 
       - name: Example inventory resolves as an Ansible inventory
         run: |

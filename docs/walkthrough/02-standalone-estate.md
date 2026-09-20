@@ -56,21 +56,29 @@ An existing lab directory, an installed agent unit or an enrolment state file ar
 as `WARN`, not `FAIL`: they mean provisioning would **adopt** this host rather than set it
 up fresh, which is a fact you should know before continuing, not an error.
 
-## 2.2 Provision the host — planned (WP-02)
+## 2.2 Provision the host — available now
 
-> **Planned.** Proposed targets, not implemented.
->
-> ```text
-> make provision-plan HOST=<alias> ROLE=zigbee|zwave     # read-only: shows the diff
-> make provision      HOST=<alias> ROLE=zigbee|zwave     # applies it
-> ```
+Look before you leap: the plan is read-only and shows exactly what would change.
 
-Ansible installs the packages, directories, permissions and service configuration the role
-needs. It is idempotent: re-running preserves data, and it reports whether it performed a
-fresh setup or adopted a host that already had a stack.
+```sh
+make provision-plan HOST=<alias> ROLE=zigbee|zwave     # read-only: shows the diff
+make provision      HOST=<alias> ROLE=zigbee|zwave     # applies it
+```
 
-It does **not** modify host networking, and it does not silently overwrite an existing
-protocol stack.
+Ansible masks the services that claim USB serial adapters, installs Docker and the Compose
+plugin, sets host-wide container log bounds, and creates the lab directories.
+
+It is idempotent: re-running preserves data, and the run reports whether it performed a
+fresh setup or **adopted** a host that already had an installation. It does **not** modify
+host networking, start a protocol service, install the FleetForge agent, or empty an
+existing lab directory.
+
+Docker is not upgraded on a re-run unless you ask for it (`docker_upgrade=true`). An
+engine upgrade restarts the daemon, which stops every running container — not something a
+"make sure this host is set up" command should do as a side effect.
+
+**Log back in afterwards.** Adding your user to the `docker` group only affects new
+sessions, so the first `docker` command in your existing SSH session will still be denied.
 
 It also handles the two Ubuntu services that claim USB serial adapters — `brltty` and
 `ModemManager` — which between them make a working radio look like dead hardware. See
