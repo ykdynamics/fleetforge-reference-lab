@@ -126,6 +126,41 @@ observed failure mode: the broker or radio service died and the agent kept check
 these four were collapsed into one status, that estate would look green. See
 [Evidence conventions](../evidence-conventions.md#1-a-gateway-heartbeat-is-not-device-freshness).
 
+### Pointing the lab at a TLS control plane
+
+The inventory carries `operator_url` and `ca_file` for this, and three constraints govern
+whether it works. They were established by trying it and reading the source when it
+failed, and the first two are easy to miss:
+
+**1. Server TLS is gated on agent mTLS.** There is one switch, not two: the API serves TLS
+only when agent mTLS is enabled.
+
+**2. Agent mTLS needs a device CA.** Without one a release build refuses to start. A
+development build falls back to its own CA, which is convenient and is also the trap:
+the stack comes up and the constraint below then bites somewhere less obvious.
+
+**3. The server certificate must be issued by that same device CA.** This is the one that
+costs an evening. `FLEETFORGE_AGENT_CA_FILE` pins trust **for enrolment only**. After
+enrolment the agent builds its trust pool from the CA it received *at* enrolment and
+nothing else, so a server certificate signed by any other CA — however correctly
+configured, installed and verified everywhere else — produces:
+
+```text
+tls: failed to verify certificate: x509: certificate signed by unknown authority
+```
+
+with a CA file that is present, readable, and genuinely the issuer of the certificate
+being rejected. The agent is not wrong; it is trusting the CA it was enrolled against.
+
+**A consequence worth planning for:** moving an existing estate onto TLS with a *new*
+device CA invalidates the certificates the agents hold, so they must re-enrol — which
+mints new gateway records and leaves the old ones behind. Decide the device CA before
+enrolling anything you intend to keep.
+
+Also: a plain HTTP reverse proxy cannot front the agent plane. Agent mTLS is enforced by
+inspecting the verified TLS peer certificate in the API process, and a proxy leaves that
+empty. TLS has to terminate at the API.
+
 ## 3.4 Do it again for the second role
 
 Same targets, `ROLE=` changed, different collector. Enrol each gateway with its own token.
