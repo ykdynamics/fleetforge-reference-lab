@@ -1,0 +1,33 @@
+# Optional overrides shared by every gateway.
+#
+# Copy to `inventory/group_vars/all.yml` (git-ignored) only if you need to change
+# something. Everything here has a working default in inventory.example.yml, and the
+# lab runs fine without this file.
+#
+# This is deliberately small. It is a lab, not a configuration framework — if a value
+# belongs to one host, put it on that host in the inventory instead of inventing a
+# layer here.
+
+# Pin versions once you have run the lab against them, and record the result in
+# docs/hardware-and-versions.md. Floating tags make a lab that worked yesterday fail
+# today for reasons unrelated to anything you changed.
+#
+# Left unset here because nothing has been qualified yet. An unset value means the
+# lab has no pinned version to offer, not that any version will do.
+#
+# mqtt_broker_image: "CHANGE-ME"
+# zigbee2mqtt_image: "CHANGE-ME"
+# zwavejs_image: "CHANGE-ME"
+
+# Bounded container logging. A protocol service logging without limits has filled a
+# gateway's root filesystem on real hardware, which stopped the broker while the host
+# itself stayed up and looked healthy.
+#
+# These limits apply when a container is created; an existing container must be
+# recreated to adopt them.
+container_log_max_size: "10m"
+container_log_max_files: 3
+
+# Timezone for the gateways. Worth setting: your service logs and your lamp
+# observations need to agree about when things happened.
+lab_timezone: "Etc/UTC"

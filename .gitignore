@@ -1,0 +1,50 @@
+# Private operator configuration, generated state and raw evidence.
+# This repository is public. Nothing below belongs in it.
+
+# --- Real inventory -----------------------------------------------------------
+# Only *.example.yml is tracked.
+inventory/*.yml
+!inventory/*.example.yml
+inventory/group_vars/*.yml
+!inventory/group_vars/*.example.yml
+inventory/host_vars/
+inventory/*.ini
+inventory/*.cfg
+
+# --- Secrets ------------------------------------------------------------------
+secrets/
+*.token
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+.env
+.env.*
+!.env.example
+
+# --- Collected evidence and backups -------------------------------------------
+# Sanitising evidence for publication is a deliberate, reviewed step. Raw output
+# is never picked up automatically.
+evidence/
+backups/
+*.tar.gz
+*.sha256
+
+# --- Ansible ------------------------------------------------------------------
+*.retry
+.vault-password
+ansible.log
+.ansible/
+
+# --- Local tooling ------------------------------------------------------------
+.venv/
+__pycache__/
+*.pyc
+.tool-versions.local
+
+# --- Editors and OS -----------------------------------------------------------
+.DS_Store
+*.swp
+.idea/
+.vscode/

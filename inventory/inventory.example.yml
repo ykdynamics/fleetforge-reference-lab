@@ -1,0 +1,119 @@
+# FleetForge Reference Lab — example inventory.
+#
+# Copy this to `inventory/inventory.yml` (git-ignored) or to a private path, then edit.
+# Every value below is FICTIONAL and is there to show the shape, not to be used.
+#
+#   cp inventory/inventory.example.yml inventory/inventory.yml
+#
+# Field-by-field notes: see inventory/README.md
+#
+# Two rules this file follows, and yours should too:
+#
+#   1. No secrets. Tokens, API keys, certificates and radio network keys are referenced
+#      by PATH to a file you hold privately. Never by value.
+#   2. Either role works alone. Delete the group you are not building — nothing in the
+#      lab requires both.
+
+all:
+  vars:
+    # The account the lab connects as. It needs sudo. Key-based SSH only.
+    ansible_user: labops
+    ansible_python_interpreter: /usr/bin/python3
+
+    # Where the lab installs things on each gateway.
+    lab_root: /opt/fleetforge-lab
+
+    # Bind address for the broker and the protocol service UIs.
+    #
+    # Loopback is the default on purpose: a broker reachable from a wider network is a
+    # broker anyone on that network can publish to. Widen it deliberately, knowing what
+    # else is on the network, and never to 0.0.0.0 on an untrusted one.
+    #
+    # To reach a UI from your workstation without widening this, forward the port:
+    #   ssh -L 8099:127.0.0.1:8099 labops@<your host>
+    lab_bind_address: "127.0.0.1"
+
+    # ---- FleetForge -------------------------------------------------------------
+    # Needed from chapter 3 onward. Delete this block to run the standalone lab only.
+    # See docs/software-access.md — none of this is publicly available.
+    fleetforge:
+      # Operator UI and API. Your browser and your API calls go here.
+      operator_url: "https://fleetforge.lab.example/api"
+
+      # The agent plane. Gateways enrol and poll here. This is a DIFFERENT listener
+      # from operator_url; mixing them up fails as an authentication error.
+      agent_plane_url: "https://fleetforge.lab.example:8443"
+
+      # Trust material and credentials, BY PATH. These files live outside this
+      # repository, readable only by you (mode 0600).
+      #
+      # A packaged agent enrolling over HTTPS REQUIRES a pinned CA file: it refuses a
+      # first enrolment rather than trusting whatever answered.
+      ca_file: "~/.config/fleetforge-lab/ca.pem"
+      api_key_file: "~/.config/fleetforge-lab/operator-api-key"
+
+zigbee_gateways:
+  hosts:
+    lab-gw-zigbee:
+      # Reach the host however you already reach it: a hostname your resolver knows,
+      # an entry in your SSH config, or an address. The lab assumes no fixed subnet
+      # and never rewrites host networking.
+      #
+      # 198.51.100.0/24 is a documentation range (RFC 5737) — not a real network.
+      ansible_host: 198.51.100.41
+
+      role: zigbee
+
+      # ALWAYS a /dev/serial/by-id path. The kernel's ttyUSB*/ttyACM* numbering can
+      # change across a reboot, and a service pointed at the wrong stick fails in ways
+      # that look like a broken mesh. Find yours with:  ls -l /dev/serial/by-id/
+      radio_adapter: "/dev/serial/by-id/usb-EXAMPLE_Zigbee_Coordinator_EXAMPLE0000-if00-port0"
+
+      # Zigbee2MQTT must be told which adapter driver to use. Visually similar dongles
+      # from one vendor can use different chipsets that enumerate identically over USB,
+      # and the wrong value starts the service and then fails confusingly.
+      # Record what you actually have.
+      radio_adapter_driver: "CHANGE-ME"
+
+      # Local service endpoints. The protocol service publishes to the broker; the
+      # FleetForge agent's collector reads from the same broker. That is the whole seam.
+      mqtt_endpoint: "127.0.0.1:1883"
+      protocol_ui_port: 8099
+
+      # One-time registration token for this gateway, BY PATH. Minted by an operator,
+      # single-use and expiring. It is read from the file, never passed as a command
+      # argument, because arguments are visible in process listings and shell history.
+      enrollment_token_file: "~/.config/fleetforge-lab/lab-gw-zigbee.token"
+
+      # The devices this lab operates on this gateway. The alias is what you pass as
+      # DEVICE= — mutations always name their target explicitly.
+      devices:
+        - alias: zigbee-lamp-plug
+          kind: wallplug
+          # How the protocol service addresses it. Fill in after pairing.
+          protocol_ref: "CHANGE-ME"
+          # Does it report power/current/energy? Leave unknown until you have looked.
+          # Metering is optional and never required by the lamp exercise.
+          metering: unknown
+
+zwave_gateways:
+  hosts:
+    lab-gw-zwave:
+      ansible_host: 198.51.100.42
+      role: zwave
+
+      # Before trusting a Z-Wave stick: confirm it carries CONTROLLER firmware, not
+      # packet-sniffer firmware. Both present the same USB identity and the same device
+      # node, the service starts normally, and then nothing ever pairs.
+      radio_adapter: "/dev/serial/by-id/usb-EXAMPLE_ZWave_Controller_EXAMPLE0000-if00"
+
+      mqtt_endpoint: "127.0.0.1:1883"
+      protocol_ui_port: 8091
+
+      enrollment_token_file: "~/.config/fleetforge-lab/lab-gw-zwave.token"
+
+      devices:
+        - alias: zwave-lamp-plug
+          kind: wallplug
+          protocol_ref: "CHANGE-ME"
+          metering: unknown
