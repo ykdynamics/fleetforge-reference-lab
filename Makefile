@@ -10,7 +10,7 @@ HOST ?=
 ROLE ?=
 
 .DEFAULT_GOAL := help
-.PHONY: help check check-links check-examples test-preflight test-provision preflight provision-plan provision stack-config stack-up stack-status stack-logs stack-down radio-devices lamp-off lamp-on
+.PHONY: help check check-links check-examples test-preflight test-provision preflight provision-plan provision stack-config stack-up stack-status stack-logs stack-down radio-devices lamp-off lamp-on agent-plan agent-install agent-status
 
 help: ## What this repository can actually run today
 	@echo 'FleetForge Reference Lab'
@@ -69,3 +69,12 @@ lamp-off: ## Switch a named lamp OFF via its protocol service (HOST= ROLE= DEVIC
 
 lamp-on: ## Switch a named lamp ON via its protocol service (HOST= ROLE= DEVICE=)
 	@ACTION=on ./scripts/lamp.sh "$(HOST)" "$(ROLE)" "$(DEVICE)" "$(INVENTORY)"
+
+agent-plan: ## What installing the FleetForge agent would change (HOST= ROLE=)
+	@ACTION=plan ./scripts/agent.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+agent-install: ## Install and enrol the agent, preserving existing identity (HOST= ROLE=)
+	@ACTION=install ./scripts/agent.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+agent-status: ## Agent version, last-cycle result and collector settings (HOST= ROLE=)
+	@ACTION=status ./scripts/agent.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
