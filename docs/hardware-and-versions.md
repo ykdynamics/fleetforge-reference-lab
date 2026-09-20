@@ -35,7 +35,7 @@ Status values: **Qualified** (this repository's procedure was run against it and
 | Zigbee coordinator adapter | Sonoff ZBDongle-P (CC2652P, CP210x bridge) | Qualified (coordinator start) | Driver `zstack`; reports `ZStack3x0`, firmware revision 20210708 |
 | Z-Wave controller adapter | Zooz ZST39 LR (800 Series Long Range) | Qualified (controller start) | Identified by zwave-js as node type **Controller** |
 | Zigbee wallplug | Sonoff S60ZBTPF | Qualified (paired, metering observed) | Reports live `power`/`current`; `voltage` refreshes only on explicit read |
-| Z-Wave wallplug | — | Unknown | To be pinned in WP-03 |
+| Z-Wave wallplug | Fibaro FGWP-102 | Qualified (included, switched, metering observed) | Binary Switch CC 37 for control, Meter CC 49 for power |
 | FleetForge control plane | — | Unknown | To be pinned in WP-04 |
 | FleetForge agent | — | Unknown | To be pinned in WP-04 |
 | Ansible (workstation) | — | Unknown | To be pinned in WP-02 |
@@ -50,7 +50,7 @@ from what version is installed:
 
 | Exercise | Zigbee role | Z-Wave role |
 |---|---|---|
-| Standalone lamp OFF/ON via the protocol UI | Unknown | Unknown |
+| Standalone lamp OFF/ON via the protocol UI | Unknown | Observed switching with live metering; not yet run as a recorded exercise |
 | Agent enrolled and heartbeating | Unknown | Unknown |
 | Devices visible in FleetForge with observation timestamps | Unknown | Unknown |
 | Lamp OFF/ON **through FleetForge** | Unknown | Unknown |

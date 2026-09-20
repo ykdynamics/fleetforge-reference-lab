@@ -204,6 +204,42 @@ the diagnosis rather than the folklore.
 **Restore the lamp to lit before moving on.** The estate should start chapter 3 in a known
 state.
 
+### The two protocols do not share a control model
+
+Both roles were brought up on the bench, and the difference is the point of having two.
+
+| | Zigbee (Sonoff S60ZBTPF) | Z-Wave (Fibaro FGWP-102) |
+|---|---|---|
+| Addressed by | friendly name / IEEE address | node id, command class, endpoint, property |
+| Switched by | `state: "ON"` / `"OFF"` on the device's `/set` topic | Binary Switch (CC 37) `targetValue`, a boolean |
+| Reads back as | `state` | Binary Switch (CC 37) `currentValue` |
+| Power reported by | `power` in the device's state payload | Meter (CC 49) `Power` |
+| Observation transport | MQTT, out of the box | **Not MQTT by default** — see below |
+
+These are not the same recipe with different names. A Z-Wave switch is a command class and
+a property on a node, not a string on a topic. That is why this lab refuses to treat a
+control path proven on Zigbee as evidence for Z-Wave: the mapping had to be read off a
+real interview, and it was.
+
+Both plugs meter, and both reported live power that fell to zero when switched off and
+rose again when switched on.
+
+### Z-Wave JS UI does not publish to MQTT until you configure it
+
+On the bench, with a Z-Wave plug included and responding, the gateway's broker carried
+**zero messages** — not just no device topics, nothing at all. Z-Wave JS UI has an MQTT
+gateway, and it is off until configured. Everything still works: the UI drives the plug,
+the interview completes, values update.
+
+This matters more than it looks. The standalone Z-Wave estate is perfectly usable over the
+service's own UI and websocket, so nothing about it feels wrong. But anything that expects
+to *observe* this gateway over MQTT will see an empty estate — a gateway that is up,
+reporting nothing, with no error anywhere to explain it.
+
+Configuring that gateway is a prerequisite for [chapter 3](03-fleetforge-integration.md),
+where the agent's Z-Wave collector reads from this broker. It is tracked as part of that
+work rather than papered over here.
+
 ## 2.6 Do it again for the second role — if you have one
 
 Everything above, with the other role. Verify one role completely before starting the
