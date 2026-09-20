@@ -87,6 +87,19 @@ run_case 'existing install reports adoption' linux/arm64 \
   '^WARN.*would ADOPT this host' \
   '^WARN.*enrollment state file exists'
 
+# The two container-reachable branches of the ModemManager-candidacy check. The third
+# (tagged AND ModemManager running -> WARN) needs systemd, so it is only exercisable on
+# a real host; it was confirmed there.
+CASE_ADAPTER=/dev/ttyUSB0 \
+run_case 'MM-candidate adapter, no ModemManager, passes' linux/arm64 \
+  'touch /dev/ttyUSB0; printf "#!/bin/sh\necho ID_MM_CANDIDATE=1\n" > /usr/local/bin/udevadm; chmod +x /usr/local/bin/udevadm;' 0 \
+  '^PASS.*tagged ID_MM_CANDIDATE=1, but ModemManager is not running'
+
+CASE_ADAPTER=/dev/ttyUSB0 \
+run_case 'non-candidate adapter passes' linux/arm64 \
+  'touch /dev/ttyUSB0; printf "#!/bin/sh\necho ID_SERIAL=whatever\n" > /usr/local/bin/udevadm; chmod +x /usr/local/bin/udevadm;' 0 \
+  '^PASS.*not a ModemManager probe candidate'
+
 run_case 'brltty udev rules warn' linux/arm64 \
   'mkdir -p /usr/lib/udev/rules.d && touch /usr/lib/udev/rules.d/85-brltty.rules;' 0 \
   '^WARN.*brltty udev rules'
