@@ -110,6 +110,30 @@
         group: root
         mode: "0750"
 
+    # The agent treats a CA file that is set but absent as a hard error, not as a
+    # silent fall back to trust-on-first-use -- which is the right call, and means the
+    # file has to actually arrive. Naming the path in agent.env without shipping it
+    # fails at first enrolment.
+    - name: Create the FleetForge configuration directory
+      when: not agent_plan_only
+      ansible.builtin.file:
+        path: /etc/fleetforge
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install the pinned CA on the gateway
+      when:
+        - not agent_plan_only
+        - fleetforge.ca_file | default('') | length > 0
+      ansible.builtin.copy:
+        src: "{{ fleetforge.ca_file }}"
+        dest: /etc/fleetforge/ca.pem
+        owner: root
+        group: root
+        mode: "0644"
+
     - name: Copy the agent package to the gateway
       when: not agent_plan_only
       ansible.builtin.copy:
