@@ -78,8 +78,19 @@ printf '\n-- archiving --\n'
 # later disk-space problem is exactly when you would need it elsewhere.
 if ! remote "sudo tar -C '$LAB_ROOT/data' -czf - '$service'" > "$archive"; then
   rm -f "$archive"
-  [ -n "$STOP_SERVICES" ] && remote "cd '$LAB_ROOT/compose' && docker compose --profile '$ROLE' start $service" || true
   printf 'FAIL the archive could not be created\n' >&2
+  # If the stack was stopped for this, say plainly whether it came back. Swallowing a
+  # failed restart here would leave the radio service down on a gateway whose operator
+  # was told only that a backup failed -- and a stopped radio looks exactly like a
+  # broken one an hour later.
+  if [ -n "$STOP_SERVICES" ]; then
+    if remote "cd '$LAB_ROOT/compose' && docker compose --profile '$ROLE' start $service"; then
+      printf 'the radio stack was started again\n' >&2
+    else
+      printf 'FAIL the radio stack could NOT be started again — %s is still stopped on %s\n' \
+        "$service" "$HOST" >&2
+    fi
+  fi
   exit 1
 fi
 chmod 600 "$archive"
