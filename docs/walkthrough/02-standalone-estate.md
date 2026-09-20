@@ -152,6 +152,55 @@ and on which channel. If it reports power or current, note whether the numbers m
 the lamp is lit — and **record a zero as a zero** if that is what you see. Metering is
 optional here and several plugs report nothing useful.
 
+### A worked example: why a lit lamp can report zero watts
+
+This happened on the lab bench, and it is worth walking through because almost every step
+of the obvious diagnosis is a trap.
+
+A mains-metering Zigbee plug, lamp visibly lit, reporting `power: 0`, `current: 0`,
+`energy: 0` — while `voltage` read a plausible 232.77 V. The device's own definition
+advertised `power`, `current` and `voltage` as readable. So the readings were wrong, or
+the plug was broken, or the reports were not arriving. All three turned out to be false.
+
+**What the evidence actually showed, in order:**
+
+| Observation | What it ruled out |
+|---|---|
+| A message every ~10s, with `linkquality` varying between them | Reports *were* arriving, live. Not a radio or reporting outage |
+| `voltage` **bit-identical** at 232.77 across 75s and 10 updates | Live mains does not hold identical for 75 seconds. The periodic report was carrying a **cached** electrical value |
+| An explicit read moved voltage to 234.68 | The metering block works and *can* produce a fresh value on demand |
+| That same fresh read still returned `current: 0`, `power: 0` | The zero was not staleness. It was a genuinely fresh zero |
+
+That left one hypothesis worth testing physically: the load was simply below what the plug
+can resolve. Swapping the LED lamp for a slightly larger one settled it immediately —
+`power` ≈ 9.8 W, `current` ≈ 0.07 A, both varying between reports. Nothing was broken. The
+first lamp drew less than the plug could measure.
+
+**Three things to take from it:**
+
+1. **Message arrival and link quality say nothing about measurement freshness.** Both
+   looked perfectly healthy while the electrical values were stale. This is exactly the
+   separation [the evidence conventions](../evidence-conventions.md) insist on, and it is
+   easy to believe you are looking at live power when you are looking at a cached number
+   in a live message.
+2. **Fields in one payload can have different freshness.** After the swap, `power` and
+   `current` varied from report to report while `voltage` stayed frozen at a single value
+   until explicitly read again. They arrive together and are not equally fresh. Do not
+   treat one field's liveness as evidence for another's.
+3. **A zero reading is a measurement, not a fault** — and not a licence to hide it. The
+   correct display was always `0`, with its freshness marked unknown, until a physical
+   fact settled what it meant.
+
+**`energy` is a special case.** It is often report-only (`access: 1`) rather than
+readable, so asking the device to read it returns a converter error — that is the device
+definition being honest, not a failure. It also accumulates slowly: a ~10 W lamp needs
+about four days to register the first `1 kWh`, so `energy: 0` is the expected reading for
+any short exercise.
+
+None of this is required for the lamp lesson. It is recorded because the wrong conclusion
+was available at every step, and because a reader meeting a zero-watt lit lamp deserves
+the diagnosis rather than the folklore.
+
 **Restore the lamp to lit before moving on.** The estate should start chapter 3 in a known
 state.
 
