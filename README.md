@@ -73,35 +73,51 @@ Read it in order: [the walkthrough](docs/walkthrough/README.md).
 
 ## What exists today
 
+Every row below has been run against real hardware — two Raspberry Pi gateways, a Zigbee
+plug and a Z-Wave plug — unless it says otherwise.
+
 | Deliverable | Status |
 |---|---|
 | Lab contract, architecture and scope | **Available** — [architecture-and-scope.md](docs/architecture-and-scope.md) |
-| Ordered walkthrough (5 chapters) | **Available as structure**; standalone and FleetForge steps are marked planned |
-| Prerequisites and Pi imaging | **Available and runnable** — standard OS steps, no repo code needed |
-| Read-only gateway preflight | **Available and runnable** — `make preflight HOST= ROLE=` |
-| Host provisioning (Make + Ansible) | **Available and runnable** — `make provision-plan` / `make provision` |
-| Example inventory | **Available** — [inventory/](inventory/) |
-| Operator command contract | **Available as a contract** — [command-contract.md](docs/command-contract.md); no target is implemented |
-| Evidence conventions | **Available** — [evidence-conventions.md](docs/evidence-conventions.md) |
-| Software-access requirements | **Available** — [software-access.md](docs/software-access.md) |
-| Standalone Zigbee / Z-Wave stacks | **Planned** — WP-03, next slice |
-| FleetForge agent integration | **Planned** — WP-04 |
-| Guided lamp exercise and evidence | **Planned** — WP-05 |
-| Reset, rebuild and first-use qualification | **Planned** — WP-06 |
+| Ordered walkthrough (5 chapters) | **Runnable** — [walkthrough](docs/walkthrough/README.md) |
+| Prerequisites and Pi imaging | **Runnable** — standard OS steps, no repo code needed |
+| Read-only gateway preflight | **Runnable** — `make preflight` |
+| Host provisioning (Make + Ansible) | **Runnable** — `make provision-plan` / `make provision` |
+| Protocol stacks (broker, Zigbee2MQTT, Z-Wave JS) | **Runnable** — `make stack-up` / `stack-status` |
+| Device inspection with freshness | **Runnable** — `make radio-devices` |
+| Standalone lamp exercise | **Runnable** — `make lamp-off` / `lamp-on`; both roles verified, human-observed |
+| FleetForge agent integration | **Runnable** — `make agent-plan` / `agent-install`; both gateways enrolled |
+| Operating a lamp through FleetForge | **Verified on both protocols** — human-observed |
+| Protocol-state backup with checksum | **Runnable** — `make radio-backup` |
+| The four resets | **Runnable** — `make scenario-restore` / `agent-remove` / `protocol-data-reset` / `host-reset` |
+| Clean-start rebuild from the docs alone | **Not yet done** — the remaining R1 gate |
+| TLS control plane with a pinned CA | **Not yet done** — the lab supports it in inventory; not exercised |
 
-The commands this repository implements today:
+The version and exercise matrices, with what each result does and does not establish, are
+in [Hardware and versions](docs/hardware-and-versions.md).
 
-```sh
-make help                                   # what is actually implemented here
-make check                                  # validate links and example-file syntax
-make preflight HOST=<alias> ROLE=<role>      # read-only inspection of one gateway
-make provision-plan HOST=<alias> ROLE=<role> # read-only: what provisioning would change
-make provision HOST=<alias> ROLE=<role>      # provision one named gateway
-```
+## Known limitations
 
-Every operator command named in the [command contract](docs/command-contract.md) is a
-**proposal**, not an implementation. This repository does not ship targets that exit `0`
-while doing nothing.
+Worth knowing before you start, and stated here rather than discovered at chapter four:
+
+- **FleetForge is not publicly available.** Chapters 1 and 2 need nothing private and are
+  a useful lab on their own. Chapters 3 to 5 need control-plane access and agent
+  artifacts. See [Software access](docs/software-access.md).
+- **Pairing is manual and physical.** At two devices, automating it would cost more than
+  it saves and hide what is happening.
+- **A backup restores service state, not a radio network.** Some adapters hold network
+  identity in the adapter, so plan to re-pair and treat a successful restore as a bonus.
+- **Metering behaviour differs by device and by field.** A lit lamp can truthfully report
+  zero watts, and two fields in one payload can have different ages. Chapter 2 works
+  through a real example.
+- **The control plane used so far is a local development deployment over plain HTTP.**
+  That is not the shape a real one has.
+
+## What the lab found
+
+Running it produced three findings in the product, none visible from reading code or from
+a green test suite — including one that made Z-Wave device operation impossible while
+every automated signal reported success. See [Product findings](docs/product-findings.md).
 
 ## Next steps
 
@@ -113,6 +129,8 @@ while doing nothing.
    allows: chapters 1 and the imaging notes are usable today.
 4. Copy [`inventory/inventory.example.yml`](inventory/inventory.example.yml) to a private
    location and fill in your own hosts. Your real inventory is ignored by git on purpose.
+5. Run `make help` to see every implemented target, then `make preflight HOST=… ROLE=…`
+   against a gateway. It is read-only and safe to run on a host you care about.
 
 ## How this repository relates to the others
 

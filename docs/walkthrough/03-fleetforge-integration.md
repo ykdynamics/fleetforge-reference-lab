@@ -52,18 +52,15 @@ The collector configuration comes from your inventory: it points at the **same**
 broker endpoint the protocol service already publishes to. That is the whole integration
 seam.
 
-## 3.1 Check your access — planned (WP-04)
+## 3.1 Check your access
 
-> **Planned.** Proposed target, not implemented.
->
-> ```text
-> make ff-access-check INVENTORY=<path>
-> ```
+> **Planned (WP-04).** A single `make ff-access-check` is proposed but not implemented.
+> `make agent-plan` covers most of it: it fails with an actionable message when the
+> control plane or the agent artifact is missing from your inventory.
 
-Read-only, and worth running before anything is installed. It confirms four separate
-things and reports them separately: the operator endpoint answers, your credentials
-authenticate, the CA trust file your inventory references exists and is readable, and the
-agent artifact is obtainable.
+Before installing anything, confirm four separate things: the operator endpoint answers,
+your credentials authenticate, the CA trust file your inventory references exists and is
+readable, and the agent artifact is obtainable.
 
 A failure here is an access problem, not a gateway problem — see
 [Software access](../software-access.md).
@@ -140,8 +137,8 @@ That is the first thing in this lab that the standalone estate could not do at a
 Run on the bench, both gateways enrolled against a local control plane:
 
 ```text
-rpi-iot-1-zigbee   online     zigbee2mqtt:<plug>    online
-rpi-iot-2-zwave    online     zwavejs:<node>        online
+lab-gw-zigbee   online     zigbee2mqtt:<plug>   online
+lab-gw-zwave    online     zwavejs:<node>       online
 ```
 
 Two protocols, two gateways, one list — and each device attributed to the gateway that

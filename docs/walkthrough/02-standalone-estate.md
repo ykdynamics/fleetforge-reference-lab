@@ -84,15 +84,13 @@ It also handles the two Ubuntu services that claim USB serial adapters — `brlt
 `ModemManager` — which between them make a working radio look like dead hardware. See
 [Imaging a gateway Pi](../gateway-os-image.md#two-services-that-steal-usb-serial-adapters).
 
-## 2.3 Start the protocol stack — planned (WP-03)
+## 2.3 Start the protocol stack — available now
 
-> **Planned.** Proposed targets, not implemented.
->
-> ```text
-> make stack-config HOST=<alias> ROLE=<role>    # read-only: validates the configuration
-> make stack-up     HOST=<alias> ROLE=<role>
-> make stack-status HOST=<alias> ROLE=<role>
-> ```
+```sh
+make stack-config HOST=<alias> ROLE=<role>    # read-only: validates the configuration
+make stack-up     HOST=<alias> ROLE=<role>
+make stack-status HOST=<alias> ROLE=<role>
+```
 
 Compose brings up the broker and the role's protocol service, with persistent volumes and
 bounded container logging.
@@ -110,7 +108,9 @@ come from your inventory. That UI is the standalone estate's entire management s
 Pairing is **physical and manual** in this lab. At two devices, automating it would cost
 more than it saves and would hide what is actually happening.
 
-> **Planned.** The window-opening targets are proposed, not implemented.
+> **Planned (WP-03).** Targets for opening the window are proposed but not implemented;
+> open it from the protocol service's own UI meanwhile. Pairing itself stays manual
+> either way.
 >
 > ```text
 > make radio-join-open  HOST=<alias> ROLE=<role> MINUTES=<n>
@@ -134,17 +134,20 @@ Removing a device is the mirror image — unpairing on Zigbee, exclusion on Z-Wa
 worth doing once deliberately so you know how. A forced removal from the service side
 leaves the device still believing it is joined until it is factory reset.
 
-## 2.5 Switch the lamp from the protocol UI — planned (WP-03)
+## 2.5 Switch the lamp from the protocol UI — available now
 
 The baseline exercise. From the protocol service's own interface, switch the wallplug off,
 confirm the lamp goes dark, switch it on, and confirm it lights.
 
-> **Planned.** Proposed targets for the same exercise from the command line.
->
-> ```text
-> make lamp-off HOST=<alias> ROLE=<role> DEVICE=<alias>
-> make lamp-on  HOST=<alias> ROLE=<role> DEVICE=<alias>
-> ```
+The same exercise from the command line, which records the outcome for you:
+
+```sh
+make lamp-off HOST=<alias> ROLE=<role> DEVICE=<alias>
+make lamp-on  HOST=<alias> ROLE=<role> DEVICE=<alias>
+```
+
+Run interactively it asks what you saw and records your answer as the witness. It never
+reads success from the device's own echo.
 
 Record the result in the [agreed shape](../evidence-conventions.md#recording-an-outcome),
 and note which fields the device actually exposes: what is writable, what it reports back,

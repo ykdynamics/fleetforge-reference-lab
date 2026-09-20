@@ -25,6 +25,15 @@ that later work packages extend a shape rather than invent one per chapter.
 | `make stack-logs HOST= ROLE=` | reads | Tails the role's service logs |
 | `make stack-down HOST= ROLE=` | **mutates** | Stops the services, keeping all data and pairings |
 | `make radio-devices HOST= ROLE=` | reads | Names devices and judges observation freshness |
+| `make lamp-off` / `lamp-on HOST= ROLE= DEVICE=` | **mutates** | Switches one named lamp via its protocol service, and records the outcome |
+| `make agent-plan HOST= ROLE=` | reads | What installing the FleetForge agent would change |
+| `make agent-install HOST= ROLE=` | **mutates** | Installs and enrols, preserving existing identity |
+| `make agent-status HOST= ROLE=` | reads | Agent version, last-cycle result, non-secret collector settings |
+| `make radio-backup HOST= ROLE= BACKUP_DIR=` | reads host, writes locally | Archives protocol state with a verified checksum |
+| `make scenario-restore HOST= ROLE= DEVICE=` | **mutates** | Returns a lamp to its baseline; destroys nothing |
+| `make agent-remove HOST= CONFIRM=` | **mutates** | Removes the agent, keeping pairings and identity |
+| `make protocol-data-reset HOST= ROLE= CONFIRM=` | **mutates** | Destroys the radio network and every pairing |
+| `make host-reset HOST= CONFIRM=` | **mutates** | Destroys everything the lab installed on that host |
 
 `make check` exits non-zero on the first failing check and prints the offending file and
 line. It touches no host and no network.
@@ -126,6 +135,18 @@ whichever one is listening.
 not mint a second gateway record for the same physical host. Fresh enrollment is a
 different target with a different name and its own confirmation, because it is a different
 decision.
+
+## Still proposals
+
+These remain unimplemented and are labelled as such wherever the walkthrough mentions
+them: `radio-join-open` / `radio-join-close` (pairing windows — open them from the
+protocol UI meanwhile), `ff-access-check`, the control-plane-side views `ff-gateway` /
+`ff-devices` / `ff-health`, the `ff-lamp-*` wrappers, `ff-run` / `ff-command` /
+`ff-observe`, `ff-exercise-record`, `evidence-bundle`, and `agent-enroll-fresh`.
+
+FleetForge's own UI and API cover what the `ff-*` wrappers would, and using the API
+directly is worth doing once — it shows exactly what the product returns rather than what
+a wrapper chose to show you.
 
 ## Planned — WP-05: operating through FleetForge
 
