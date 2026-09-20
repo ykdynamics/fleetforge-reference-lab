@@ -1,0 +1,90 @@
+# Protocol services for one lab gateway. Managed by Ansible — edit the template in
+# the repository, not this file on the host.
+#
+#   docker compose --profile zigbee up -d     # broker + Zigbee2MQTT
+#   docker compose --profile zwave  up -d     # broker + Z-Wave JS UI
+#
+# One file serves both roles through profiles, so there is a single thing to fix when
+# something is wrong rather than two that drift apart. The broker has no profile, so it
+# starts with either.
+#
+# Driven by `make stack-up HOST=... ROLE=...`.
+name: ff-lab
+
+# Bounded logs on every service. An unbounded protocol-service log has filled a
+# gateway's root filesystem on real hardware and stopped its broker, while the host
+# itself stayed up and looked healthy. These apply at container creation: an existing
+# container must be recreated to adopt them.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "{{ container_log_max_size }}"
+    max-file: "{{ container_log_max_files | string }}"
+
+services:
+  mosquitto:
+    image: {{ mosquitto_image }}
+    container_name: ff-lab-mosquitto
+    logging: *logging
+    restart: unless-stopped
+    command: ["mosquitto", "-c", "/mosquitto/config/mosquitto.conf"]
+    volumes:
+      - {{ lab_root }}/config/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - {{ lab_root }}/data/mosquitto:/mosquitto/data
+    ports:
+      # Bound to {{ lab_bind_address }} from the inventory. A broker reachable from the
+      # whole network is a broker anyone on it can publish to — and this one drives a
+      # physical relay.
+      - "{{ lab_bind_address }}:{{ mqtt_port }}:1883"
+
+{% if role == 'zigbee' %}
+  zigbee2mqtt:
+    image: {{ zigbee2mqtt_image }}
+    container_name: ff-lab-zigbee2mqtt
+    logging: *logging
+    restart: unless-stopped
+    depends_on:
+      - mosquitto
+    devices:
+      # The stable by-id path from the inventory, never /dev/ttyUSB*. Kernel numbering
+      # can change across a reboot, and a service pointed at the wrong stick fails in a
+      # way that looks like a broken mesh.
+      - "{{ radio_adapter }}:/dev/zigbee"
+    volumes:
+      - {{ lab_root }}/data/zigbee2mqtt:/app/data
+      - /run/udev:/run/udev:ro
+    environment:
+      - TZ={{ lab_timezone }}
+    ports:
+      - "{{ lab_bind_address }}:{{ protocol_ui_port }}:8080"
+{% endif %}
+
+{% if role == 'zwave' %}
+  zwave-js-ui:
+    image: {{ zwavejs_image }}
+    container_name: ff-lab-zwave-js-ui
+    logging: *logging
+    restart: unless-stopped
+    tty: true
+    stop_signal: SIGINT
+    depends_on:
+      - mosquitto
+    devices:
+      - "{{ radio_adapter }}:/dev/zwave"
+    volumes:
+      - {{ lab_root }}/data/zwave-js-ui:/usr/src/app/store
+    environment:
+      - TZ={{ lab_timezone }}
+      # Z-Wave JS UI keeps its serial port in its own settings store, not in the device
+      # mapping -- mapping the device in is necessary but not sufficient, and without
+      # this it starts cleanly and logs "Z-Wave driver not inited, no port configured".
+      # ZWAVE_PORT sets it without clicking through the UI, so a rebuilt gateway comes
+      # up configured.
+      - ZWAVE_PORT=/dev/zwave
+      # Not a credential: it signs this lab instance's own UI sessions. It is generated
+      # per host into the private host_vars, never a shared committed value.
+      - SESSION_SECRET={{ zwavejs_session_secret }}
+    ports:
+      - "{{ lab_bind_address }}:{{ protocol_ui_port }}:8091"
+      - "{{ lab_bind_address }}:{{ zwavejs_ws_port }}:3000"
+{% endif %}

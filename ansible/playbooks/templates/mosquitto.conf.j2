@@ -1,0 +1,20 @@
+# Broker for one lab gateway. Managed by Ansible.
+#
+# Persistence is ON. Both protocol services publish their device registry retained and
+# only republish on their own restart, so a non-persistent broker silently loses that
+# registry across a broker restart until the protocol service is itself restarted.
+persistence true
+persistence_location /mosquitto/data/
+
+listener 1883
+# Anonymous access is acceptable ONLY because the port is published to
+# {{ lab_bind_address }} and nothing else reaches it. If you widen the published address
+# in the inventory, add authentication here first — this broker drives a physical relay.
+allow_anonymous true
+
+# Bounded, to stdout, so Docker's log limits actually apply to it.
+log_dest stdout
+log_type error
+log_type warning
+log_type notice
+connection_messages true

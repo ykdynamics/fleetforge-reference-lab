@@ -1,0 +1,39 @@
+# Initial Zigbee2MQTT configuration. Written ONLY when no configuration.yaml exists.
+#
+# Zigbee2MQTT owns this file after first start: it writes the generated network key and
+# the paired device list into it. Ansible must never overwrite it, or the Zigbee network
+# is lost and every device has to be re-paired.
+#
+# Deliberately minimal — the keys the lab actually depends on. Zigbee2MQTT fills in its
+# own defaults for the rest on first start, which keeps this from drifting against a
+# schema that changes between major versions.
+mqtt:
+  server: mqtt://mosquitto:1883
+  base_topic: zigbee2mqtt
+
+serial:
+  port: /dev/zigbee
+  # zstack = TI CC2652 (Sonoff ZBDongle-P) · ember = Silabs EFR32 (ZBDongle-E).
+  # Both enumerate as the same USB bridge chip, so this cannot be detected from the
+  # USB id — a wrong value starts the service and then fails confusingly.
+  adapter: {{ radio_adapter_driver }}
+
+frontend:
+  enabled: true
+  port: 8080
+
+advanced:
+  # GENERATE makes Zigbee2MQTT mint a random network key on first start and write it
+  # back here. It is a secret: it lives only in this host's data directory, is never
+  # committed, and is what a backup of that directory must protect.
+  network_key: GENERATE
+
+device_options:
+  # Retain device state so a subscriber sees the current value the moment it connects,
+  # rather than waiting for the device to speak again. A battery device may not speak
+  # for hours.
+  retain: true
+
+# Skip the first-run setup page. Zigbee2MQTT writes this key itself on first start, and
+# whatever is in this file wins over the equivalent environment variable.
+onboarding: false
