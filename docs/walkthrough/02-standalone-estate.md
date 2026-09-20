@@ -24,22 +24,37 @@ Raspberry Pi
 No FleetForge agent. Nothing reaching out. Everything on this Pi and nowhere else — which
 is exactly the situation the second half of this lab is about.
 
-## 2.1 Preflight — planned (WP-02)
+## 2.1 Preflight — available now
 
-> **Planned.** Proposed target, not implemented.
->
-> ```text
-> make preflight HOST=<alias> ROLE=zigbee|zwave
-> ```
+```sh
+make preflight HOST=<alias> ROLE=zigbee|zwave
+```
 
-A read-only check before anything is changed: OS and architecture, SSH and sudo, disk
-headroom, the radio adapter's identity at its by-id path, and whether a lab stack is
-already installed. It changes nothing, so it is safe to run repeatedly and safe to run on
-a host you care about.
+A read-only check before anything is changed. It reports on the host baseline (OS,
+architecture, Pi model, kernel), access (passwordless sudo), resources (disk headroom,
+memory, a writable filesystem), the radio adapter at its by-id path, services that claim
+USB serial adapters, any existing installation, and listener exposure.
 
-Each line is `PASS`, `WARN`, `FAIL` or `UNKNOWN` — see
+It changes nothing, so it is safe to run repeatedly and safe to run on a host you care
+about. Each line is `PASS`, `WARN`, `FAIL` or `UNKNOWN` — see
 [Evidence conventions](../evidence-conventions.md). A `FAIL` names what is missing and how
-to fix it. Do not continue past one.
+to fix it. **Do not continue past one.**
+
+Both the host and the role are explicit. If the role disagrees with your inventory the
+command refuses rather than checking the wrong gateway — that is how you preflight the
+Zigbee host and conclude the Z-Wave one is fine.
+
+The three failures worth expecting on a fresh Ubuntu host:
+
+| Reported | What to do |
+|---|---|
+| `FAIL privileges: sudo requires a password` | Provisioning is non-interactive and cannot answer a prompt. Give your account passwordless sudo |
+| `WARN brltty is ...` / `WARN ModemManager is ...` | Both claim USB serial adapters and make a working radio look dead. Provisioning handles them; until then, expect adapter trouble |
+| `FAIL configured adapter is missing` | Your inventory's `radio_adapter` does not match reality. Check it against `ls -l /dev/serial/by-id/` on the host |
+
+An existing lab directory, an installed agent unit or an enrolment state file are reported
+as `WARN`, not `FAIL`: they mean provisioning would **adopt** this host rather than set it
+up fresh, which is a fact you should know before continuing, not an error.
 
 ## 2.2 Provision the host — planned (WP-02)
 
@@ -57,9 +72,9 @@ fresh setup or adopted a host that already had a stack.
 It does **not** modify host networking, and it does not silently overwrite an existing
 protocol stack.
 
-A detail worth knowing in advance: some Linux systems run a modem-management service that
-opens USB serial devices looking for a modem. When it takes the radio adapter, the adapter
-looks dead — a failure that reads as broken hardware. Provisioning handles this.
+It also handles the two Ubuntu services that claim USB serial adapters — `brltty` and
+`ModemManager` — which between them make a working radio look like dead hardware. See
+[Imaging a gateway Pi](../gateway-os-image.md#two-services-that-steal-usb-serial-adapters).
 
 ## 2.3 Start the protocol stack — planned (WP-03)
 

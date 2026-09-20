@@ -1,0 +1,56 @@
+# Repository checks. These never contact a gateway.
+#
+# A green run here is NOT hardware qualification: the preflight scenarios run against
+# an Ubuntu container, which has no device tree, no systemd and no USB. Checks that
+# depend on those report UNKNOWN and can only be confirmed on a real Pi. See
+# docs/evidence-conventions.md.
+name: checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck python3-yaml ansible-core
+
+      - name: Shell syntax and lint
+        run: |
+          for f in scripts/*.sh; do
+            case "$f" in
+              */preflight-remote.sh) sh -n "$f" ;;   # POSIX sh, runs on the gateway
+              *) bash -n "$f" ;;
+            esac
+          done
+          shellcheck scripts/*.sh
+
+      - name: Links and example files
+        run: make check
+
+      - name: Example inventory resolves as an Ansible inventory
+        run: |
+          ansible-inventory -i inventory/inventory.example.yml --list > /dev/null
+          for host in lab-gw-zigbee lab-gw-zwave; do
+            ansible-inventory -i inventory/inventory.example.yml --host "$host" > /dev/null
+          done
+
+      # The gateways are arm64; the runner is amd64. The scenarios deliberately
+      # exercise both, so the runner needs arm64 emulation to run the primary ones.
+      - name: Set up QEMU (arm64 emulation)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Preflight scenarios and failure paths (simulated)
+        run: make test-preflight

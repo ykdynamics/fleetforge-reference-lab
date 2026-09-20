@@ -24,8 +24,8 @@ Status values: **Qualified** (this repository's procedure was run against it and
 
 | Component | Version | Status | Evidence |
 |---|---|---|---|
-| Raspberry Pi model | — | Unknown | Any 64-bit-capable Pi is expected to work; none qualified here |
-| Raspberry Pi OS Lite 64-bit | — | Unknown | To be pinned in WP-02 against a real provisioned host |
+| Raspberry Pi model | 4 Model B | In use | The lab baseline. Other models are untested here |
+| Ubuntu Server LTS (arm64) | 24.04 | In use | The supported baseline. `make preflight` warns on anything else |
 | Docker Engine / Compose plugin | — | Unknown | To be pinned in WP-02 |
 | Mosquitto | — | Unknown | To be pinned in WP-03 |
 | Zigbee2MQTT | — | Unknown | To be pinned in WP-03 |
@@ -37,6 +37,11 @@ Status values: **Qualified** (this repository's procedure was run against it and
 | FleetForge control plane | — | Unknown | To be pinned in WP-04 |
 | FleetForge agent | — | Unknown | To be pinned in WP-04 |
 | Ansible (workstation) | — | Unknown | To be pinned in WP-02 |
+
+The OS baseline moved from Raspberry Pi OS Lite to Ubuntu Server 24.04 LTS when the
+lab hardware was prepared. One baseline is supported, not both: the two differ in
+first-boot handling (`cloud-init`), networking (`netplan`) and which services claim USB
+serial adapters, and carrying both would double the provisioning surface for no gain.
 
 A separate matrix records **what has been demonstrated**, which is a different question
 from what version is installed:

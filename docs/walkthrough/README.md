@@ -25,7 +25,7 @@ automation does.
 > the target does not exist.
 
 Anything **not** marked planned is runnable now. Chapter 1 and the
-[Pi imaging notes](../raspberry-pi-image.md) are entirely standard OS work and do not
+[Pi imaging notes](../gateway-os-image.md) are entirely standard OS work and do not
 depend on this repository's automation at all.
 
 ## Before you start

@@ -16,9 +16,17 @@ that later work packages extend a shape rather than invent one per chapter.
 | `make check` | reads | Runs both checks below |
 | `make check-links` | reads | Validates every relative Markdown link resolves to a file |
 | `make check-examples` | reads | Parses every `*.example.yml` as YAML |
+| `make preflight HOST= ROLE=` | reads | Read-only inspection of one gateway over SSH |
 
 `make check` exits non-zero on the first failing check and prints the offending file and
 line. It touches no host and no network.
+
+`make preflight` is the first implemented lab target. It resolves the host from your
+inventory, connects over SSH and reports PASS/WARN/FAIL/UNKNOWN for the host baseline,
+access, resources, radio adapter, services that claim USB serial adapters, any existing
+installation, and listener exposure. It installs, starts, stops and changes nothing, and
+never prints credentials, tokens or enrollment file contents. Optional `INVENTORY=` when
+your inventory lives outside the repository.
 
 ## Conventions every target follows
 
@@ -64,7 +72,6 @@ step that cannot determine something reports `UNKNOWN` — never a cheerful defa
 
 | Target | Args | Reads/Mutates | Prerequisites | Expected output | On failure |
 |---|---|---|---|---|---|
-| `preflight` | `HOST` `ROLE` | reads | SSH reachable | PASS/WARN/FAIL/UNKNOWN lines for OS and architecture, sudo, disk headroom, radio adapter identity from a stable by-id path, and whether a lab stack is already installed | `FAIL` per unmet prerequisite, each naming the fix. Exit `1` |
 | `provision-plan` | `HOST` `ROLE` | reads | `preflight` clean | The diff provisioning *would* apply — packages, directories, permissions, units. Changes nothing | Exit `1` if the plan cannot be computed |
 | `provision` | `HOST` `ROLE` | **mutates** | `provision-plan` reviewed | Applies the plan. Reports whether this was a fresh setup or adoption of an existing host. Re-running is idempotent and preserves data | Stops at the failing task with Ansible's own error. Never partially rewrites host networking |
 | `host-info` | `HOST` | reads | SSH reachable | Kernel, architecture, disk, Docker version, radio adapters by-id, installed lab components. No secrets | Exit `1` if unreachable |
