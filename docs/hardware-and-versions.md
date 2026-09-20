@@ -57,7 +57,8 @@ from what version is installed:
 | Re-run integration preserving gateway identity | **PASS** — no new record created | **PASS** — upgraded in place, identity kept |
 | Scenario restoration (lamp to baseline) | **PASS** — idempotent, destroys nothing | **PASS** — idempotent, destroys nothing |
 | Protocol-state backup with verified checksum | **PASS** — archived, verified, service restarted cleanly | **PASS** — archived, verified, service restarted cleanly |
-| Reset and rebuild from published instructions alone | Unknown | Unknown |
+| Reset and rebuild from published instructions alone | **PARTIAL** — rebuild works, but the reset leaves the coordinator unable to start until a backup is restored | Not yet run |
+| Backup restore recovers the network and pairings | **PASS** — same adapter; no device re-paired | Not yet run |
 
 Both columns are filled in independently. See
 [Evidence conventions § Z-Wave support is established, never inherited](evidence-conventions.md#z-wave-support-is-established-never-inherited).

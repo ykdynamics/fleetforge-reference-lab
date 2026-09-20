@@ -45,6 +45,18 @@ Consequence: **nothing validates the topic.** A wrong node, a wrong command clas
 read-only property produces `queued: true`, a `succeeded` run, an agent log line saying
 the command was handled, and silence. That is the same failure shape as #415.
 
+## A gateway that has run commands cannot be deleted — open
+
+**[fleetforge#418](https://github.com/ykdynamics/fleetforge/issues/418) · open**
+
+Rebuilding a gateway leaves a stale record, which the documentation says to retire
+deliberately. Archiving works; deleting fails on a foreign key from `commands`, so any
+gateway that has ever executed a command is permanently undeletable.
+
+The status code is the more dangerous half: the failure is reported as `unavailable`
+(HTTP 503), whose meaning here is *ask again*. It is a permanent constraint violation, so
+a client implementing retry-on-503 — the correct behaviour for a real 503 — loops forever.
+
 ## Metering freshness is not a property of a device
 
 **No product issue — a lab finding about what any consumer should assume**
