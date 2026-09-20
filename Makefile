@@ -10,7 +10,7 @@ HOST ?=
 ROLE ?=
 
 .DEFAULT_GOAL := help
-.PHONY: help check check-links check-examples test-preflight test-provision preflight provision-plan provision stack-config stack-up stack-status stack-logs stack-down
+.PHONY: help check check-links check-examples test-preflight test-provision preflight provision-plan provision stack-config stack-up stack-status stack-logs stack-down radio-devices
 
 help: ## What this repository can actually run today
 	@echo 'FleetForge Reference Lab'
@@ -60,3 +60,6 @@ stack-logs: ## Tail the role's service logs (HOST= ROLE= [INVENTORY=])
 
 stack-down: ## Stop the services, keeping all data and pairings (HOST= ROLE= [INVENTORY=])
 	@ACTION=down ./scripts/stack.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+radio-devices: ## Name devices and judge observation freshness (HOST= ROLE= [WINDOW=])
+	@./scripts/radio-devices.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
