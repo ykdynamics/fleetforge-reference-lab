@@ -79,12 +79,12 @@ Read it in order: [the walkthrough](docs/walkthrough/README.md).
 | Ordered walkthrough (5 chapters) | **Available as structure**; standalone and FleetForge steps are marked planned |
 | Prerequisites and Pi imaging | **Available and runnable** — standard OS steps, no repo code needed |
 | Read-only gateway preflight | **Available and runnable** — `make preflight HOST= ROLE=` |
+| Host provisioning (Make + Ansible) | **Available and runnable** — `make provision-plan` / `make provision` |
 | Example inventory | **Available** — [inventory/](inventory/) |
 | Operator command contract | **Available as a contract** — [command-contract.md](docs/command-contract.md); no target is implemented |
 | Evidence conventions | **Available** — [evidence-conventions.md](docs/evidence-conventions.md) |
 | Software-access requirements | **Available** — [software-access.md](docs/software-access.md) |
-| Host provisioning (Make + Ansible) | **Planned** — WP-02, next slice |
-| Standalone Zigbee / Z-Wave stacks | **Planned** — WP-03 |
+| Standalone Zigbee / Z-Wave stacks | **Planned** — WP-03, next slice |
 | FleetForge agent integration | **Planned** — WP-04 |
 | Guided lamp exercise and evidence | **Planned** — WP-05 |
 | Reset, rebuild and first-use qualification | **Planned** — WP-06 |
@@ -94,7 +94,9 @@ The commands this repository implements today:
 ```sh
 make help                                   # what is actually implemented here
 make check                                  # validate links and example-file syntax
-make preflight HOST=<alias> ROLE=<role>     # read-only inspection of one gateway
+make preflight HOST=<alias> ROLE=<role>      # read-only inspection of one gateway
+make provision-plan HOST=<alias> ROLE=<role> # read-only: what provisioning would change
+make provision HOST=<alias> ROLE=<role>      # provision one named gateway
 ```
 
 Every operator command named in the [command contract](docs/command-contract.md) is a

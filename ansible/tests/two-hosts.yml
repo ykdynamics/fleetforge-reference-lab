@@ -1,0 +1,11 @@
+# Fixture for the provisioning failure-path tests. Local connection, no real gateway.
+# Two hosts on purpose: the playbook must refuse to provision more than one at a time.
+all:
+  vars:
+    ansible_connection: local
+    ansible_become: false
+  hosts:
+    fake-gw-a:
+      role: zigbee
+    fake-gw-b:
+      role: zwave
