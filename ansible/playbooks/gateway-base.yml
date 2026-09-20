@@ -48,18 +48,18 @@
     # mirror the preflight checks so that `provision` alone is still safe to run.
     - name: Assert the architecture is arm64
       ansible.builtin.assert:
-        that: ansible_architecture == 'aarch64'
+        that: ansible_facts['architecture'] == 'aarch64'
         fail_msg: >-
-          This host reports {{ ansible_architecture }}. The lab's container images are
+          This host reports {{ ansible_facts['architecture'] }}. The lab's container images are
           built for arm64 only.
         quiet: true
 
     - name: Warn when the OS is not the qualified baseline
       ansible.builtin.debug:
         msg: >-
-          WARN {{ ansible_distribution }} {{ ansible_distribution_version }} is not the
+          WARN {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }} is not the
           qualified baseline (Ubuntu 24.04). Continuing, but this configuration is untested.
-      when: not (ansible_distribution == 'Ubuntu' and ansible_distribution_version is version('24.04', '=='))
+      when: not (ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_version'] is version('24.04', '=='))
 
     - name: Detect an existing lab installation
       ansible.builtin.stat:
@@ -121,11 +121,27 @@
         repo: >-
           deb [arch=arm64 signed-by=/etc/apt/keyrings/docker.asc]
           https://download.docker.com/linux/ubuntu
-          {{ ansible_distribution_release }} stable
+          {{ ansible_facts['distribution_release'] }} stable
         filename: docker
         state: present
 
+    # Plan mode did not really add the Docker repository, so nothing downstream of the
+    # package install can be evaluated: apt cannot resolve the packages, the `docker`
+    # group the package creates does not exist, and neither does its service unit.
+    # Those would all fail for reasons that say nothing about this host. That is a limit
+    # of the mode, not a finding, so plan mode reports UNKNOWN and skips them rather
+    # than failing -- see docs/evidence-conventions.md.
+    - name: Report what plan mode cannot evaluate
+      ansible.builtin.debug:
+        msg:
+          - "UNKNOWN the steps below depend on the Docker repository, which is only really added when the plan is applied."
+          - "Applying will: install docker-ce, docker-ce-cli, containerd.io and docker-compose-plugin"
+          - "Applying will: add {{ lab_user }} to the docker group the package creates"
+          - "Applying will: enable and start the docker service"
+      when: ansible_check_mode
+
     - name: Install Docker Engine and the Compose plugin
+      when: not ansible_check_mode
       ansible.builtin.apt:
         name: >-
           {{ ['docker-ce', 'docker-ce-cli', 'containerd.io', 'docker-compose-plugin']
@@ -154,6 +170,7 @@
       notify: Restart Docker
 
     - name: Add the lab user to the docker group
+      when: not ansible_check_mode
       ansible.builtin.user:
         name: "{{ lab_user }}"
         groups: docker
@@ -174,6 +191,7 @@
         - "{{ lab_root }}/compose"
 
     - name: Ensure Docker is running
+      when: not ansible_check_mode
       ansible.builtin.systemd_service:
         name: docker
         state: started
@@ -181,11 +199,13 @@
 
   post_tasks:
     - name: Record what was installed
+      when: not ansible_check_mode
       ansible.builtin.command: docker --version
       changed_when: false
       register: docker_installed
 
     - name: Report the provisioned state
+      when: not ansible_check_mode
       ansible.builtin.debug:
         msg:
           - "PASS {{ docker_installed.stdout }}"
@@ -194,7 +214,9 @@
           - "NEXT re-run: make preflight HOST={{ inventory_hostname }} ROLE=<role>"
 
   handlers:
+    # Skipped in plan mode for the same reason: the unit does not exist there yet.
     - name: Restart Docker
+      when: not ansible_check_mode
       ansible.builtin.systemd_service:
         name: docker
         state: restarted
