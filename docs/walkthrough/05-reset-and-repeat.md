@@ -17,7 +17,7 @@ From least to most destructive:
 | **Scenario restoration** | Nothing | Everything | The lamp is off, or the estate is mid-exercise, and you want the documented baseline back |
 | **Agent removal** | The FleetForge agent and its configuration | Radio stack, pairings, protocol data — **and the enrolment identity, by default** | You want the standalone estate back, or you are reinstalling the agent |
 | **Protocol-data reset** | The protocol service's persistent data — **the radio network and every pairing on that gateway** | Host, Docker, agent and its identity | The radio state is corrupt, or you want a genuinely fresh pairing exercise |
-| **Full host reset** | Everything this lab installed on that host | The OS and your SSH access | You are rebuilding that gateway from scratch |
+| **Full host reset** | The lab's data, services, agent and identity on that host | The OS, your SSH access, host provisioning (Docker, masked services) **and the adapter's own radio network** | You are rebuilding that gateway from scratch |
 
 They are deliberately **four targets**, not one target with a flag. A single `reset` with
 options is how somebody destroys a radio network while meaning to restart an agent.
@@ -141,6 +141,77 @@ host is ready to be provisioned again from [chapter 2](02-standalone-estate.md).
 
 Use this on hardware you are willing to rebuild. It is the right tool for qualifying the
 walkthrough from a clean start, and the wrong tool for almost anything else.
+
+## What a clean start actually found
+
+The rebuild was run on the Zigbee gateway: `host-reset`, then the published instructions
+from provisioning through to operating the lamp. Four things came out of it, and none of
+them was visible before somebody did it.
+
+### 1. `host-reset` leaves a Zigbee gateway unable to start
+
+This is the important one. The reset wipes the protocol service's data — including the
+network key and the coordinator backup — so Zigbee2MQTT starts fresh and tries to form a
+**new** network. But the coordinator stick still holds the **old** network in its own
+NVRAM. The two collide:
+
+```text
+error: network commissioning timed out - most likely network with the same panId
+       or extendedPanId already exists nearby
+```
+
+The stack does not start at all. Not degraded — down.
+
+This is the "some adapters hold network identity in the adapter itself" caveat from the
+backup section, arriving from the other direction: it is not only that a restore may fail
+to reconstitute a mesh, it is that **deleting the service's data while the adapter keeps
+its network leaves the gateway broken** until one side or the other is reconciled.
+
+So a Zigbee `host-reset` or `protocol-data-reset` is not complete on its own. Either
+restore a backup, or reset the adapter itself.
+
+### 2. The backup restored everything, including the pairing
+
+Recovery was the backup, and it worked:
+
+```text
+checksum          verified before the archive was trusted
+Coordinator firmware version: ZStack3x0
+Currently 1 devices are joined.
+Zigbee2MQTT started!
+```
+
+**No device had to be re-paired.** The adapter had kept the network, the archive supplied
+the matching key and device database, and the two agreed again. That is a stronger result
+than the backup section promised — and the promise stays deliberately weaker, because it
+held here only because the same physical adapter was still in place.
+
+### 3. `host-reset` keeps more than the documentation said
+
+The first preflight after the reset reported **zero warnings** on a supposedly fresh host:
+Docker still installed, ModemManager still masked. `host-reset` removes the lab's data,
+services and agent — it does not undo host provisioning.
+
+That is defensible behaviour: removing Docker would be heavy-handed, and re-provisioning
+is idempotent anyway. But "everything the lab installed" overstated it. What it really
+gives you is a **lab-clean host, not a day-zero one**, and the table above now says so.
+
+A genuinely day-zero qualification starts from a freshly imaged card.
+
+### 4. A fresh enrolment duplicates records, and the stale one cannot be deleted
+
+Expected: the rebuilt gateway enrolled as a new record and the old one was left behind.
+The documentation said it would be.
+
+Not expected: **the same physical device now appears twice** — once online under the new
+gateway, once offline under the old one — and the documented retirement path does not
+complete. Archiving works; deleting fails, because the old gateway has command history and
+a foreign key holds it in place. Worse, the failure is reported as a **retryable** error
+for a condition that will never clear.
+
+Tracked as [fleetforge#418](https://github.com/ykdynamics/fleetforge/issues/418). Until it
+is fixed, expect a rebuilt gateway to leave a permanent archived record and a duplicate
+device behind.
 
 ## Repeating the lab
 

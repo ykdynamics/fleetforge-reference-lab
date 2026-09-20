@@ -145,6 +145,14 @@ DESTROYS  the protocol stack, its containers and ALL protocol data
 DESTROYS  the radio network and every pairing on this gateway
 DESTROYS  the lab directories under $LAB_ROOT
 KEEPS     the operating system and your SSH access
+KEEPS     host provisioning — Docker stays installed, ModemManager stays masked
+KEEPS     the radio adapter's own network, which lives in the adapter, not on disk
+
+This gives you a LAB-CLEAN host, not a day-zero one. For Zigbee that matters: wiping
+the service data while the adapter keeps its network leaves the stack unable to start,
+because it tries to form a new network alongside the old one. Restore a backup after
+this, or reset the adapter itself. A genuinely day-zero rebuild starts from a freshly
+imaged card.
 
 The host is left ready to be provisioned again from chapter 2. Use this on hardware you
 are willing to rebuild — it is the right tool for qualifying the walkthrough from a
