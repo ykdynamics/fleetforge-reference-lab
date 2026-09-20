@@ -165,8 +165,15 @@ fi
 # brltty is the Ubuntu-specific one: its udev rules claim several USB-serial bridge
 # chips (CH340/CH341 and some CP210x) for braille displays. The dongle then either
 # disappears or is held open, and it reads as dead hardware.
+mm_running=no
 if command -v systemctl >/dev/null 2>&1; then
   for svc in brltty brltty-udev ModemManager; do
+    case "$svc" in
+      ModemManager)
+        case "$(systemctl is-active "$svc" 2>/dev/null || true)" in
+          active|activating) mm_running=yes ;;
+        esac ;;
+    esac
     state=$(systemctl is-active "$svc" 2>/dev/null || true)
     enabled=$(systemctl is-enabled "$svc" 2>/dev/null || true)
     case "$state" in
@@ -186,6 +193,22 @@ fi
 
 if [ -r /usr/lib/udev/rules.d/85-brltty.rules ] || [ -r /lib/udev/rules.d/85-brltty.rules ]; then
   warn 'brltty udev rules are installed — they claim CH340/CP210x adapters used by many Zigbee and Z-Wave sticks'
+fi
+
+# "Is ModemManager running" is the wrong question on its own. The one that matters is
+# whether udev tags THIS adapter as something ModemManager may probe: that tag is what
+# lets it open the port, and an open port during probing is what makes a healthy radio
+# fail to start. Both a Zigbee CP210x stick and a Z-Wave CH9102 stick carry the tag.
+if [ -n "$RADIO_ADAPTER" ] && [ -e "$RADIO_ADAPTER" ] && command -v udevadm >/dev/null 2>&1; then
+  if udevadm info -q property -n "$RADIO_ADAPTER" 2>/dev/null | grep -q '^ID_MM_CANDIDATE=1'; then
+    if [ "$mm_running" = yes ]; then
+      warn 'the configured adapter is tagged ID_MM_CANDIDATE=1 and ModemManager is running — it is eligible to open this port to probe it'
+    else
+      pass 'the configured adapter is tagged ID_MM_CANDIDATE=1, but ModemManager is not running'
+    fi
+  else
+    pass 'the configured adapter is not a ModemManager probe candidate'
+  fi
 fi
 
 echo '-- existing installation --'

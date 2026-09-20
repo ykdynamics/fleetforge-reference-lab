@@ -30,8 +30,8 @@ Status values: **Qualified** (this repository's procedure was run against it and
 | Mosquitto | — | Unknown | To be pinned in WP-03 |
 | Zigbee2MQTT | — | Unknown | To be pinned in WP-03 |
 | Z-Wave JS UI | — | Unknown | To be pinned in WP-03 |
-| Zigbee coordinator adapter | — | Unknown | To be pinned in WP-03 |
-| Z-Wave controller adapter | — | Unknown | To be pinned in WP-03 |
+| Zigbee coordinator adapter | Sonoff ZBDongle-P (CC2652P, CP210x bridge) | Qualified (preflight) | Enumerated and resolved by `make preflight`. Driver `zstack`. Radio not yet exercised |
+| Z-Wave controller adapter | Zooz 800 Z-Wave Stick (CH9102 bridge) | Qualified (preflight) | Enumerated and resolved by `make preflight`. Radio not yet exercised |
 | Zigbee wallplug | — | Unknown | To be pinned in WP-03 |
 | Z-Wave wallplug | — | Unknown | To be pinned in WP-03 |
 | FleetForge control plane | — | Unknown | To be pinned in WP-04 |
