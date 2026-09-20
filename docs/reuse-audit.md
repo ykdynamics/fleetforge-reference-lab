@@ -72,19 +72,31 @@ is answered affirmatively:
 
 These are material and block WP-02 onward. None can be resolved from repository evidence.
 
-### 1. This repository has no license
+### 1. This repository's licence — settled
 
-There is no `LICENSE` file, so default copyright applies and readers receive no reuse
-rights — for a repository whose stated purpose is that strangers reproduce it. A licence
-needs to be chosen deliberately, which is why WP-01 has not chosen one.
+**Apache License 2.0.** Chosen for the patent grant and the `NOTICE` mechanism, which
+matter more than usual here: the lab sits next to a product that may be licensed
+commercially, and an explicit patent grant protects both sides of that boundary.
 
-### 2. The source material is unlicensed too
+Readers now have clear rights to the lab's automation, configuration and documentation.
+That does not extend to FleetForge or to the third-party services the lab runs, and
+[NOTICE](../NOTICE) says so.
 
-`fleetforge` is private and carries no licence file. Moving code from it into a public
-repository is a publication decision for the owner, and the outbound licence has to be
-compatible with whatever the owner intends for the product. **Until this is settled, WP-02
-and WP-03 must write their automation fresh rather than port it** — which is slower and
-loses hard-won detail.
+### 2. The source material is still unlicensed
+
+`fleetforge` is private and carries no licence file, so moving code out of it remains a
+publication decision for the owner. The outbound direction is now settled — anything that
+lands here is Apache-2.0 — but the owner still has to decide that a given file may leave
+the private repository at all.
+
+**In practice this has largely stopped mattering.** WP-02 and WP-03 wrote their automation
+fresh: preflight, provisioning, the protocol stacks, device inspection and the lamp
+exercise are all original work here, and several of them ended up better for it — the
+adapter-level ModemManager check and the payload-age freshness reporting came from
+measuring this hardware rather than from inherited code.
+
+The one remaining candidate is the radio-state backup with its checksum manifest, which
+WP-06 needs. Everything else can stay where it is.
 
 ### 3. Are the FleetForge agent artifacts going to be publicly available?
 
@@ -106,8 +118,9 @@ control plane — which currently requires private repository access — or they
 credentials for one. This bounds what "follow the guide" can mean for someone outside the
 organisation.
 
-### 5. Third-party licences
+### 5. Third-party licences — recorded
 
-The protocol services are open source under their own licences. Once this repository ships
-configuration and documentation referencing them, their licence terms and any attribution
-requirements should be checked as part of choosing this repository's licence.
+The protocol services are open source under their own licences, and this repository
+configures them rather than redistributing them: the container images are pulled from
+their publishers at run time. They are listed in [NOTICE](../NOTICE) so the boundary is
+explicit.

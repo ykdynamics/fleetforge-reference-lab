@@ -126,9 +126,16 @@ while doing nothing.
 A bug in FleetForge belongs in `fleetforge`. A gap in how to set the lab up belongs here.
 See [Architecture and scope § Public and private boundaries](docs/architecture-and-scope.md#public-and-private-boundaries).
 
-## Licensing
+## Licence
 
-**This repository has no license file yet**, which means default copyright applies and no
-reuse rights are granted. Choosing one is a deliberate decision for the repository owner,
-and it also gates how much existing automation can be brought in — see
-[Reuse audit](docs/reuse-audit.md).
+Apache License 2.0 — see [LICENSE](LICENSE) and [NOTICE](NOTICE). Use it, adapt it, build
+on it.
+
+Two things that licence does **not** cover:
+
+- **FleetForge itself.** This repository is the lab, not the product. FleetForge has its
+  own licensing and access terms, and a public lab source tree is not a claim that
+  FleetForge is publicly available — see [Software access](docs/software-access.md).
+- **The third-party software the lab runs.** Mosquitto, Zigbee2MQTT, Z-Wave JS UI, Docker
+  and Ansible each keep their own licences. This repository configures and documents them;
+  it does not redistribute them. They are listed in [NOTICE](NOTICE).
