@@ -1,0 +1,89 @@
+# Hardware and versions
+
+## How this lab selects hardware and versions
+
+Two rules, and they are the reason this page is mostly empty:
+
+1. **A version is pinned when a procedure in this repository has been run against it** on
+   real hardware, and the result recorded. Not when it seemed to work once, and not
+   because it is the current release.
+2. **A compatibility claim requires evidence.** Until then the entry is `UNKNOWN`. An
+   `UNKNOWN` here is not a warning that something is broken — it means nobody has run the
+   documented procedure against it yet.
+
+Where a pin exists, it is applied in the actual configuration — the Compose image tags,
+the Ansible package versions — and not only described here. Floating tags such as
+`latest` make a lab that worked yesterday fail today for reasons that have nothing to do
+with what you changed.
+
+## Support matrix
+
+Status values: **Qualified** (this repository's procedure was run against it and recorded)
+· **In use** (the author's bench runs it; not qualified by this repository's procedure)
+· **Unknown** (untested here).
+
+| Component | Version | Status | Evidence |
+|---|---|---|---|
+| Raspberry Pi model | — | Unknown | Any 64-bit-capable Pi is expected to work; none qualified here |
+| Raspberry Pi OS Lite 64-bit | — | Unknown | To be pinned in WP-02 against a real provisioned host |
+| Docker Engine / Compose plugin | — | Unknown | To be pinned in WP-02 |
+| Mosquitto | — | Unknown | To be pinned in WP-03 |
+| Zigbee2MQTT | — | Unknown | To be pinned in WP-03 |
+| Z-Wave JS UI | — | Unknown | To be pinned in WP-03 |
+| Zigbee coordinator adapter | — | Unknown | To be pinned in WP-03 |
+| Z-Wave controller adapter | — | Unknown | To be pinned in WP-03 |
+| Zigbee wallplug | — | Unknown | To be pinned in WP-03 |
+| Z-Wave wallplug | — | Unknown | To be pinned in WP-03 |
+| FleetForge control plane | — | Unknown | To be pinned in WP-04 |
+| FleetForge agent | — | Unknown | To be pinned in WP-04 |
+| Ansible (workstation) | — | Unknown | To be pinned in WP-02 |
+
+A separate matrix records **what has been demonstrated**, which is a different question
+from what version is installed:
+
+| Exercise | Zigbee role | Z-Wave role |
+|---|---|---|
+| Standalone lamp OFF/ON via the protocol UI | Unknown | Unknown |
+| Agent enrolled and heartbeating | Unknown | Unknown |
+| Devices visible in FleetForge with observation timestamps | Unknown | Unknown |
+| Lamp OFF/ON **through FleetForge** | Unknown | Unknown |
+| Re-run integration preserving gateway identity | Unknown | Unknown |
+| Reset and rebuild from published instructions alone | Unknown | Unknown |
+
+Both columns are filled in independently. See
+[Evidence conventions § Z-Wave support is established, never inherited](evidence-conventions.md#z-wave-support-is-established-never-inherited).
+
+> **On prior results.** A Zigbee lamp has previously been switched off and on through
+> FleetForge on the author's bench and confirmed visually. That demonstrates the product
+> path exists. It was **not** produced by this repository's setup procedure, which did not
+> exist at the time, so it does not qualify any row above. Z-Wave control through
+> FleetForge has not been established at all.
+
+## Choosing a radio adapter
+
+The lab does not require specific models, but two things matter more than the brand:
+
+**Confirm the stick is a controller.** Some Z-Wave USB sticks ship with packet-sniffer
+firmware. They present the same USB identity and the same device node as a controller, the
+service starts normally, and then nothing ever pairs — which reads as a pairing problem
+and is not one. Verify the firmware role before concluding anything about your mesh.
+
+**Know which Zigbee chipset you have.** Zigbee2MQTT needs to be told which adapter driver
+to use, and visually similar dongles from the same vendor can use different chipsets that
+enumerate identically over USB. Getting it wrong produces a service that starts and then
+fails in a confusing way. Record the chipset in your inventory alongside the adapter path.
+
+## Always use a stable adapter path
+
+`/dev/ttyUSB0` and `/dev/ttyACM0` are assigned in enumeration order and can change across
+a reboot or a replug. With two gateways and two radios, a service pointed at the wrong
+stick fails in ways that look like a broken mesh.
+
+Use the by-id path instead:
+
+```sh
+ls -l /dev/serial/by-id/
+```
+
+That path is derived from the adapter's own identity and survives reboots. The inventory
+takes a by-id path; see [inventory/inventory.example.yml](../inventory/inventory.example.yml).
