@@ -28,7 +28,17 @@ options is how somebody destroys a radio network while meaning to restart an age
 no path to an implicit estate-wide wipe.
 
 **Destructive targets require a matching confirmation.** `CONFIRM=` must equal `HOST=`. A
-mismatch fails before anything happens.
+mismatch fails before anything happens — including the mismatch that matters most, naming
+a *different real host* in the confirmation:
+
+```text
+$ CONFIRM=lab-gw-b make agent-remove HOST=lab-gw-a
+REFUSED this destroys the above on lab-gw-a.
+Re-run with CONFIRM=lab-gw-a to proceed. Nothing has been changed.
+```
+
+The confirmation has to name the host, so "wrong window, right command" stops being one
+keystroke away from a wiped mesh.
 
 **Effects are printed before the destructive step**, naming what will be lost — especially
 pairings and identity — and the step is refused if the confirmation does not match.
@@ -36,25 +46,21 @@ pairings and identity — and the step is refused if the confirmation does not m
 **The control plane is never reset from here.** If a reset leaves a stale gateway record
 behind, retire it through FleetForge's own interface, deliberately.
 
-## 5.1 Scenario restoration — planned (WP-06)
+## 5.1 Scenario restoration — available now
 
-> **Planned.** Proposed target, not implemented.
->
-> ```text
-> make scenario-restore HOST=<alias> ROLE=<role> DEVICE=<alias>
-> ```
+```sh
+make scenario-restore HOST=<alias> ROLE=<role> DEVICE=<alias>
+```
 
 Returns the lamp to its documented baseline state. Destroys nothing, needs no confirmation,
 and is the right thing to run after a half-finished exercise. This is what you want the
 overwhelming majority of the time.
 
-## 5.2 Agent removal — planned (WP-06)
+## 5.2 Agent removal — available now
 
-> **Planned.** Proposed target, not implemented.
->
-> ```text
-> make agent-remove HOST=<alias> CONFIRM=<alias>
-> ```
+```sh
+make agent-remove HOST=<alias> CONFIRM=<alias>
+```
 
 Removes the FleetForge agent and its configuration. The radio stack, the pairings and the
 protocol data are untouched — you get the chapter-2 estate back, still working.
@@ -68,13 +74,11 @@ Discarding identity is opt-in (`PURGE_IDENTITY=1`), and it means the host will e
 > underneath a working agent — that is the point of chapter 3. Remove the agent because you
 > want it gone, not to illustrate something.
 
-## 5.3 Protocol-data reset — planned (WP-06)
+## 5.3 Protocol-data reset — available now
 
-> **Planned.** Proposed target, not implemented.
->
-> ```text
-> make protocol-data-reset HOST=<alias> ROLE=<role> CONFIRM=<alias>
-> ```
+```sh
+make protocol-data-reset HOST=<alias> ROLE=<role> BACKUP_DIR=<path> CONFIRM=<alias>
+```
 
 **This destroys the radio network and every pairing on that gateway.** Every device must be
 physically re-paired afterwards, which means handling each one.
@@ -125,13 +129,11 @@ network identity in the adapter itself, and restoration behaviour is adapter-spe
 procedure reports the limit that applies to your adapter instead of implying the pairings
 will simply come back. Plan to re-pair.
 
-## 5.4 Full host reset — planned (WP-06)
+## 5.4 Full host reset — available now
 
-> **Planned.** Proposed target, not implemented.
->
-> ```text
-> make host-reset HOST=<alias> CONFIRM=<alias>
-> ```
+```sh
+make host-reset HOST=<alias> CONFIRM=<alias>
+```
 
 Removes everything this lab installed on the **named** host: the agent and its identity,
 the stacks, the volumes and the lab directories. The OS and your SSH access remain, so the
