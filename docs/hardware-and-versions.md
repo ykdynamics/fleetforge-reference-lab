@@ -36,7 +36,7 @@ Status values: **Qualified** (this repository's procedure was run against it and
 | Z-Wave controller adapter | Zooz ZST39 LR (800 Series Long Range) | Qualified (controller start) | Identified by zwave-js as node type **Controller** |
 | Zigbee wallplug | Sonoff S60ZBTPF | Qualified (paired, metering observed) | Reports live `power`/`current`; `voltage` refreshes only on explicit read |
 | Z-Wave wallplug | Fibaro FGWP-102 | Qualified (included, switched, metering observed) | Binary Switch CC 37 for control, Meter CC 49 for power |
-| FleetForge control plane | local development deployment | In use | Plain HTTP on the workstation; a TLS deployment is the next step |
+| FleetForge control plane | local deployment, TLS with agent mTLS | Qualified (enrolment and operation) | Server certificate minted by the control plane from the device CA |
 | FleetForge agent | 0.1.1-lab (arm64 .deb) | Qualified (enrolled, observing, operating both protocols) | Built from the product repository; not publicly downloadable |
 | Ansible (workstation) | — | Unknown | To be pinned in WP-02 |
 
@@ -54,6 +54,7 @@ from what version is installed:
 | Agent enrolled and heartbeating | **PASS** — online, agent 0.1.0-lab | **PASS** — online, agent 0.1.0-lab |
 | Devices visible in FleetForge with observation timestamps | **PASS** — plug visible, attributed to its gateway | **PASS** — node visible, attributed to its gateway |
 | Lamp OFF/ON **through FleetForge** | **PASS** — OFF and ON, human-observed | **PASS** — OFF and ON, human-observed, after [fleetforge#415](https://github.com/ykdynamics/fleetforge/issues/415) |
+| Enrolment and operation over **TLS with a pinned CA** | **PASS** — enrolled, heartbeating, lamp switched | **PASS** — enrolled, heartbeating, lamp switched |
 | Re-run integration preserving gateway identity | **PASS** — no new record created | **PASS** — upgraded in place, identity kept |
 | Scenario restoration (lamp to baseline) | **PASS** — idempotent, destroys nothing | **PASS** — idempotent, destroys nothing |
 | Protocol-state backup with verified checksum | **PASS** — archived, verified, service restarted cleanly | **PASS** — archived, verified, service restarted cleanly |
