@@ -34,7 +34,7 @@ Status values: **Qualified** (this repository's procedure was run against it and
 | zwave-js (driver) | 15.29.0 | Qualified (controller start) | Bundled with Z-Wave JS UI 11.24.1 |
 | Zigbee coordinator adapter | Sonoff ZBDongle-P (CC2652P, CP210x bridge) | Qualified (coordinator start) | Driver `zstack`; reports `ZStack3x0`, firmware revision 20210708 |
 | Z-Wave controller adapter | Zooz ZST39 LR (800 Series Long Range) | Qualified (controller start) | Identified by zwave-js as node type **Controller** |
-| Zigbee wallplug | — | Unknown | To be pinned in WP-03 |
+| Zigbee wallplug | Sonoff S60ZBTPF | Qualified (paired, metering observed) | Reports live `power`/`current`; `voltage` refreshes only on explicit read |
 | Z-Wave wallplug | — | Unknown | To be pinned in WP-03 |
 | FleetForge control plane | — | Unknown | To be pinned in WP-04 |
 | FleetForge agent | — | Unknown | To be pinned in WP-04 |
