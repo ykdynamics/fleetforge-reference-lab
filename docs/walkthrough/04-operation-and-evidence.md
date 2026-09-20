@@ -153,6 +153,7 @@ naming the correct local broker is `rejected` as one the agent is not configured
 
 So this is not "Z-Wave is harder" or a configuration mistake in the lab. It is a specific,
 locatable product gap, and the exercise stays **blocked** until it is fixed in FleetForge.
+Tracked as [fleetforge#415](https://github.com/ykdynamics/fleetforge/issues/415).
 
 **There is a configuration workaround, and it is not recommended here.** Setting the
 generic MQTT address on a Z-Wave gateway would populate the allowlist and make the publish
