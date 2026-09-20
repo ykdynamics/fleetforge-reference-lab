@@ -45,7 +45,12 @@ jobs:
             ansible-inventory -i inventory/inventory.example.yml --host "$host" > /dev/null
           done
 
+      # The gateways are arm64; the runner is amd64. The scenarios deliberately
+      # exercise both, so the runner needs arm64 emulation to run the primary ones.
+      - name: Set up QEMU (arm64 emulation)
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
       - name: Preflight scenarios and failure paths (simulated)
-        run: |
-          docker run --privileged --rm tonistiigi/binfmt --install amd64 >/dev/null
-          make test-preflight
+        run: make test-preflight

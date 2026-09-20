@@ -49,6 +49,19 @@ run_case() {
 command -v docker >/dev/null 2>&1 || { echo 'FAIL docker is required to exercise the preflight checks'; exit 1; }
 docker image inspect "$IMAGE" >/dev/null 2>&1 || docker pull -q "$IMAGE" >/dev/null
 
+# The gateways are arm64, so that is the primary platform here; one scenario needs a
+# foreign architecture to prove the arch check actually fails. A host that cannot run
+# one of them produces "exec format error" inside every affected case, which reads as
+# a dozen broken checks rather than one missing emulator. Say so once, up front.
+for required in linux/arm64 linux/amd64; do
+  if ! docker run --rm --platform "$required" "$IMAGE" true >/dev/null 2>&1; then
+    printf 'FAIL cannot run %s containers on this host\n' "$required"
+    printf '     install emulation for it, e.g.:\n'
+    printf '       docker run --privileged --rm tonistiigi/binfmt --install %s\n' "${required#linux/}"
+    exit 1
+  fi
+done
+
 echo '== remote checks, against Ubuntu 24.04 userland (simulated, not hardware) =='
 
 run_case 'clean host passes' linux/arm64 '' 0 \
