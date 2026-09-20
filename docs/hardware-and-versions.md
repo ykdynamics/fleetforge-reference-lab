@@ -50,7 +50,7 @@ from what version is installed:
 
 | Exercise | Zigbee role | Z-Wave role |
 |---|---|---|
-| Standalone lamp OFF/ON via the protocol UI | Observed switching; not yet recorded as an exercise | **PASS** — OFF and ON through the protocol service, human-observed, lamp restored |
+| Standalone lamp OFF/ON via the protocol UI | **PASS** — OFF and ON, human-observed, lamp restored | **PASS** — OFF and ON, human-observed, lamp restored |
 | Agent enrolled and heartbeating | Unknown | Unknown |
 | Devices visible in FleetForge with observation timestamps | Unknown | Unknown |
 | Lamp OFF/ON **through FleetForge** | Unknown | Unknown |

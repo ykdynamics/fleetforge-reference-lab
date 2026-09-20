@@ -204,10 +204,31 @@ the diagnosis rather than the folklore.
 **Restore the lamp to lit before moving on.** The estate should start chapter 3 in a known
 state.
 
-### A recorded standalone outcome
+### Two recorded standalone outcomes
 
-The Z-Wave exercise run on the bench, written in the
-[agreed shape](../evidence-conventions.md#recording-an-outcome):
+Both roles, run on the bench and written in the
+[agreed shape](../evidence-conventions.md#recording-an-outcome). The Zigbee one first:
+
+```text
+what was asked   state → OFF, then → ON, on the paired plug, through the
+                 protocol service's own MQTT interface
+receipts         none — see below
+device-reported  OFF leg: state OFF, power 9.24 W → 0
+                 ON  leg: state ON, current 0.08 A
+human-observed   operator reported the lamp went dark, then lit again
+outcome          PASS — witness: human-observed
+versions         Zigbee2MQTT 2.14.1 · Sonoff S60ZBTPF fw 8195
+restoration      lamp returned to lit, confirmed by the operator
+```
+
+One detail in that record repays attention. Immediately after the ON leg the plug reported
+`power=0` while `current=0.08` — not a contradiction, and not a fault. The plug reports
+roughly every ten seconds, and the read landed before power had been re-measured while
+current already had. **Two fields, one payload, different ages**, exactly as the metering
+example above describes. A reader who took that `power=0` as "the lamp is drawing nothing"
+would be wrong, and would have been wrong for about eight seconds.
+
+And the Z-Wave exercise:
 
 ```text
 what was asked   Binary Switch (CC 37) targetValue → false, then → true, on the
