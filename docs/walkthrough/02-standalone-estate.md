@@ -240,6 +240,47 @@ Configuring that gateway is a prerequisite for [chapter 3](03-fleetforge-integra
 where the agent's Z-Wave collector reads from this broker. It is tracked as part of that
 work rather than papered over here.
 
+Once it is on, control works in both directions: publishing to a value's `/set` topic
+switched the plug, and the switch state and power both updated within seconds.
+
+### The Z-Wave plug reports on change, not on a timer
+
+Worth internalising before you trust any view of this estate.
+
+With the plug included, responding, and its MQTT gateway configured, a 95-second
+subscription to the whole Z-Wave topic tree received **55 messages and not one new
+measurement**. Every one was a retained value republished the moment the subscription
+opened. By message count the estate looked busy; nothing in it was current.
+
+Switching the plug proved the values are not stuck. The moment the state changed, both the
+switch state and the power reading updated within seconds:
+
+```text
+publish OFF   →  currentValue false   ·  Power 0      (both freshly timestamped)
+publish ON    →  currentValue true    ·  Power 16.6   (both freshly timestamped)
+```
+
+So the device reports **on change**. While a lamp burns steadily it says nothing, and the
+last reading ages quietly. Nothing is broken, and no amount of polling the broker produces
+a newer number than the device has chosen to send.
+
+The Zigbee plug on the other gateway behaves differently — it reports every ten seconds or
+so whether or not anything changed. Two plugs, two protocols, two observation models. **A
+freshness expectation calibrated on one is wrong for the other.**
+
+Two consequences worth carrying into chapter 3:
+
+- **Message arrival is not measurement freshness**, and here the gap is wide enough to
+  matter: 55 messages, zero measurements. Anything that subscribes, sees traffic and
+  concludes the estate is live would be wrong every time.
+- **Judge age, not arrival.** Z-Wave payloads carry the time the value was recorded, so
+  `make radio-devices` reports `measured Nm ago`. That is what exposed this — counting
+  reports showed activity, the timestamp showed a sixteen-minute-old power figure.
+
+If you want periodic reports instead of change-only, that is a configuration parameter on
+the node, set through the protocol service. This lab leaves the device on its defaults and
+reports the age instead, because the default is what most estates actually run.
+
 ## 2.6 Do it again for the second role — if you have one
 
 Everything above, with the other role. Verify one role completely before starting the
