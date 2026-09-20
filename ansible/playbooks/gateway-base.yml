@@ -31,6 +31,9 @@
     # restarts the daemon, which stops every running container -- not something a
     # "make sure this host is set up" command should do as a side effect.
     docker_upgrade: false
+    # Long enough to outlast a typical unattended-upgrades run on a freshly booted
+    # host. The default of 60s is not.
+    apt_lock_timeout: 300
     container_log_max_size: "10m"
     container_log_max_files: 3
 
@@ -60,6 +63,26 @@
           WARN {{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }} is not the
           qualified baseline (Ubuntu 24.04). Continuing, but this configuration is untested.
       when: not (ansible_facts['distribution'] == 'Ubuntu' and ansible_facts['distribution_version'] is version('24.04', '=='))
+
+    # apt lock contention fails in a way that looks like a broken host rather than a
+    # busy one: Ansible's apt module waits 60 seconds by default and then reports a lock
+    # error. Two things cause it here -- Ubuntu's unattended-upgrades, which runs after
+    # boot and holds the lock for minutes, and a second provisioning run started while
+    # one is still going. The second is what produced it on this estate. Report the
+    # contention and wait, rather than racing it.
+    - name: Check whether another process holds the dpkg lock
+      ansible.builtin.command: fuser /var/lib/dpkg/lock-frontend
+      register: dpkg_lock
+      changed_when: false
+      failed_when: false
+
+    - name: Report apt lock contention
+      ansible.builtin.debug:
+        msg: >-
+          WARN another process holds the dpkg lock (most likely unattended-upgrades,
+          which runs after boot). Provisioning will wait up to
+          {{ apt_lock_timeout }}s for it rather than fail.
+      when: dpkg_lock.rc == 0
 
     - name: Detect an existing lab installation
       ansible.builtin.stat:
@@ -103,6 +126,7 @@
         state: present
         update_cache: true
         cache_valid_time: 3600
+        lock_timeout: "{{ apt_lock_timeout }}"
 
     - name: Create the apt keyring directory
       ansible.builtin.file:
@@ -149,6 +173,7 @@
              | list }}
         state: "{{ 'latest' if docker_upgrade else 'present' }}"
         update_cache: true
+        lock_timeout: "{{ apt_lock_timeout }}"
 
     # Host-wide log bounds. The per-service Compose settings cover the lab's own
     # containers; this covers anything else started on the host, so one forgotten
