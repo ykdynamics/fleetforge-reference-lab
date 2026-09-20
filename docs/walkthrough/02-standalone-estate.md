@@ -108,14 +108,17 @@ come from your inventory. That UI is the standalone estate's entire management s
 Pairing is **physical and manual** in this lab. At two devices, automating it would cost
 more than it saves and would hide what is actually happening.
 
-> **Planned (WP-03).** Targets for opening the window are proposed but not implemented;
-> open it from the protocol service's own UI meanwhile. Pairing itself stays manual
-> either way.
->
-> ```text
-> make radio-join-open  HOST=<alias> ROLE=<role> MINUTES=<n>
-> make radio-join-close HOST=<alias> ROLE=<role>
-> ```
+```sh
+make radio-join-open  HOST=<alias> ROLE=<role> MINUTES=<n>
+make radio-join-close HOST=<alias> ROLE=<role>
+```
+
+The window opens on the **named host only**, for between 1 and 15 minutes — an unbounded
+window is how a device being reset lands on the wrong coordinator. Both targets confirm
+with the service that the window really changed state rather than reporting success for a
+published message, which is the same distinction this lab draws everywhere else.
+
+Putting the device into its own join mode stays manual and physical.
 
 The sequence, whichever way the window is opened:
 

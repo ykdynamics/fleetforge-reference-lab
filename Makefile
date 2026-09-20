@@ -10,7 +10,7 @@ HOST ?=
 ROLE ?=
 
 .DEFAULT_GOAL := help
-.PHONY: help check check-links check-examples test-preflight test-provision preflight provision-plan provision stack-config stack-up stack-status stack-logs stack-down radio-devices lamp-off lamp-on agent-plan agent-install agent-status radio-backup scenario-restore agent-remove protocol-data-reset host-reset
+.PHONY: help check check-links check-examples test-preflight test-provision preflight provision-plan provision stack-config stack-up stack-status stack-logs stack-down radio-devices lamp-off lamp-on agent-plan agent-install agent-status radio-backup radio-join-open radio-join-close scenario-restore agent-remove protocol-data-reset host-reset
 
 help: ## What this repository can actually run today
 	@echo 'FleetForge Reference Lab'
@@ -93,3 +93,9 @@ protocol-data-reset: ## DESTROYS the radio network and every pairing (HOST= ROLE
 
 host-reset: ## DESTROYS everything the lab installed on one host (HOST= CONFIRM=HOST)
 	@ACTION=host-reset ./scripts/reset.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+radio-join-open: ## Open the pairing window on ONE gateway, briefly (HOST= ROLE= [MINUTES=])
+	@ACTION=open ./scripts/radio-join.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+radio-join-close: ## Close the pairing window (HOST= ROLE=)
+	@ACTION=close ./scripts/radio-join.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
