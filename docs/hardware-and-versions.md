@@ -37,7 +37,7 @@ Status values: **Qualified** (this repository's procedure was run against it and
 | Zigbee wallplug | Sonoff S60ZBTPF | Qualified (paired, metering observed) | Reports live `power`/`current`; `voltage` refreshes only on explicit read |
 | Z-Wave wallplug | Fibaro FGWP-102 | Qualified (included, switched, metering observed) | Binary Switch CC 37 for control, Meter CC 49 for power |
 | FleetForge control plane | local development deployment | In use | Plain HTTP on the workstation; a TLS deployment is the next step |
-| FleetForge agent | 0.1.0-lab (arm64 .deb) | Qualified (enrolled, observing) | Built from the product repository; not publicly downloadable |
+| FleetForge agent | 0.1.1-lab (arm64 .deb) | Qualified (enrolled, observing, operating both protocols) | Built from the product repository; not publicly downloadable |
 | Ansible (workstation) | — | Unknown | To be pinned in WP-02 |
 
 The OS baseline moved from Raspberry Pi OS Lite to Ubuntu Server 24.04 LTS when the
@@ -53,18 +53,22 @@ from what version is installed:
 | Standalone lamp OFF/ON via the protocol UI | **PASS** — OFF and ON, human-observed, lamp restored | **PASS** — OFF and ON, human-observed, lamp restored |
 | Agent enrolled and heartbeating | **PASS** — online, agent 0.1.0-lab | **PASS** — online, agent 0.1.0-lab |
 | Devices visible in FleetForge with observation timestamps | **PASS** — plug visible, attributed to its gateway | **PASS** — node visible, attributed to its gateway |
-| Lamp OFF/ON **through FleetForge** | **PASS** — OFF and ON, human-observed | **BLOCKED** — [fleetforge#415](https://github.com/ykdynamics/fleetforge/issues/415): the agent's broker allowlist omits the Z-Wave JS address |
-| Re-run integration preserving gateway identity | **PASS** — no new record created | Not yet re-run |
+| Lamp OFF/ON **through FleetForge** | **PASS** — OFF and ON, human-observed | **PASS** — OFF and ON, human-observed, after [fleetforge#415](https://github.com/ykdynamics/fleetforge/issues/415) |
+| Re-run integration preserving gateway identity | **PASS** — no new record created | **PASS** — upgraded in place, identity kept |
 | Reset and rebuild from published instructions alone | Unknown | Unknown |
 
 Both columns are filled in independently. See
 [Evidence conventions § Z-Wave support is established, never inherited](evidence-conventions.md#z-wave-support-is-established-never-inherited).
 
-> **On prior results.** A Zigbee lamp has previously been switched off and on through
-> FleetForge on the author's bench and confirmed visually. That demonstrates the product
-> path exists. It was **not** produced by this repository's setup procedure, which did not
-> exist at the time, so it does not qualify any row above. Z-Wave control through
-> FleetForge has not been established at all.
+> **On prior results.** A Zigbee lamp had previously been switched through FleetForge on
+> the author's bench and confirmed visually, before this repository existed. Every row
+> above was re-established by this repository's own procedure rather than inherited.
+>
+> Keeping the two protocols separate paid for itself: Z-Wave control turned out to be
+> impossible on the then-current product build, for a reason no automated signal reported.
+> Had the Zigbee result been read as evidence for both,
+> [fleetforge#415](https://github.com/ykdynamics/fleetforge/issues/415) would have shipped
+> as a working feature.
 
 ## Choosing a radio adapter
 

@@ -124,10 +124,10 @@ retry contract was verified at the same time: a repeated identical request retur
 with the original run rather than switching the lamp twice, and the same key with a
 different input was refused `409`.
 
-### Z-Wave: blocked by the product, and not worked around
+### Z-Wave: blocked, then fixed, then verified
 
-The same operation against the Z-Wave gateway **cannot work today**, and the lab records
-that rather than routing around it.
+The same operation against the Z-Wave gateway **did not work**, and chasing it down is the
+most useful thing in this chapter.
 
 What was observed, in order:
 
@@ -139,45 +139,53 @@ broker            nothing arrived on the topic
 device            unchanged — same value, same timestamp as before the request
 ```
 
-Every FleetForge-side signal said success. Nothing happened.
+**Every FleetForge-side signal said success. Nothing happened.** Queue receipt, execution
+acknowledgement and physical effect are three different facts, and here the first two were
+present while the third was absent. An operator reading the run status, the command status
+or the agent log would have reported a working feature.
 
-The cause is in the agent's broker allowlist. `mqtt_publish` may only publish to brokers
-the agent is already configured for — a deliberate and well-reasoned restriction, since a
-command that could name any reachable address would make the agent dial it **with the
-gateway's broker credentials attached**. That restriction is right.
+The cause was in the agent's broker allowlist. `mqtt_publish` may only publish to brokers
+the agent is already configured for — a deliberate restriction, since a command free to
+name any reachable address would make the agent dial it **with the gateway's broker
+credentials attached**. That restriction is right and still stands.
 
-The defect is its membership. The allowlist is built from the Zigbee2MQTT address and the
-generic MQTT address. **The Z-Wave JS address is not in it.** So on a Z-Wave-only gateway
-the allowlist is empty: a request naming no broker resolves to nothing, and a request
-naming the correct local broker is `rejected` as one the agent is not configured for.
+Its membership was the defect: the allowlist was built from the Zigbee2MQTT address and
+the generic MQTT address, and **the Z-Wave JS address was not in it**. On a Z-Wave-only
+gateway the allowlist was therefore empty — a request naming no broker resolved to
+nothing, and one naming the correct local broker was refused as a broker the agent is not
+configured for.
 
-So this is not "Z-Wave is harder" or a configuration mistake in the lab. It is a specific,
-locatable product gap, and the exercise stays **blocked** until it is fixed in FleetForge.
-Tracked as [fleetforge#415](https://github.com/ykdynamics/fleetforge/issues/415).
+Fixed in [fleetforge#415](https://github.com/ykdynamics/fleetforge/issues/415) by adding
+that one configured address, with tests that fail without it. Then re-run here:
 
-**There is a configuration workaround, and it is not recommended here.** Setting the
-generic MQTT address on a Z-Wave gateway would populate the allowlist and make the publish
-succeed — but the same setting also enables a second, generic collector against the same
-broker, which would re-ingest the Z-Wave topics under a different identity. Trading a
-blocked exercise for duplicated device records is a bad trade, and hiding it inside lab
-automation would be worse.
+```text
+before the fix    switch True,  power 13.3   — timestamps unchanged, nothing moved
+after the fix     switch False, power 0      — both measured seconds ago
+restored          switch True,  power 15.1   — both measured seconds ago
+human-observed    operator reported the lamp went dark, then lit again
+outcome           PASS — witness: human-observed
+```
 
-**What this lab will not do:** publish to the Z-Wave service directly and present the
-result as FleetForge operating the device. The lamp would switch and the demonstration
-would be worthless, because the thing under test is the control plane's path.
+The agent was upgraded in place and kept its gateway identity, so this also demonstrates
+that a product fix reaches a deployed gateway without re-enrolling it.
 
-This is exactly why the lab refuses to let a Zigbee result stand in for a Z-Wave one. Had
-the Zigbee exercise been taken as evidence for both, this gap would have shipped as a
-working feature.
+### What that sequence is worth
 
-Each role gets its own verified recipe: its own device addressing, its own command path,
-its own recorded outcome. A recipe proven on one protocol is not published as covering the
-other.
+This is the whole argument for building the lab, in one episode:
 
-If the Z-Wave path turns out to need a product capability that does not exist, the
-exercise is marked **blocked**, a product issue is filed in `fleetforge`, and the blocker
-stays visible here. It is not quietly omitted, and it is not satisfied by publishing to
-the radio service directly and labelling it a FleetForge operation.
+- **A Zigbee lamp was already switching through FleetForge**, with receipts, human-observed
+  and repeatable. Had that been taken as evidence for both protocols — which is exactly
+  what a demonstration is tempted to do — this gap would have shipped as a working feature.
+- **The failure was invisible to every automated signal.** Nothing short of looking at the
+  device could distinguish it from success, which is precisely why this lab insists on a
+  witness and treats `UNKNOWN` as a real outcome.
+- **The lab refused the workarounds.** A configuration change would have made the publish
+  succeed at the cost of duplicate device records, and publishing to Z-Wave JS directly
+  would have lit the lamp while proving nothing about the control plane. Both were
+  available, and both would have hidden a real defect.
+
+"Z-Wave control is established, never inherited from Zigbee" reads like pedantry until it
+catches something. This is what it catches.
 
 ## 4.6 Metering, if your plug has it — planned (WP-05)
 
