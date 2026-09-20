@@ -1,0 +1,204 @@
+# Install and enrol the FleetForge agent on one gateway.
+#
+#   make agent-plan    HOST=<alias> ROLE=<zigbee|zwave>   # read-only
+#   make agent-install HOST=<alias> ROLE=<zigbee|zwave>
+#
+# The agent is added ALONGSIDE the protocol stack, not in place of it. Nothing here
+# stops, reconfigures or re-pairs anything: the broker, the protocol service and every
+# paired device carry on exactly as before.
+#
+# Installed as a host service rather than a Compose service, because it carries a
+# per-gateway identity whose lifecycle has to outlive the stack being torn down and
+# brought back up.
+---
+- name: Install the FleetForge agent on a lab gateway
+  hosts: all
+  become: true
+
+  vars:
+    lab_user: "{{ ansible_user | default(lookup('env', 'USER')) }}"
+    role: "{{ hostvars[inventory_hostname].role }}"
+    mqtt_endpoint: "{{ hostvars[inventory_hostname].mqtt_endpoint | default('127.0.0.1:1883') }}"
+    fleetforge: "{{ hostvars[inventory_hostname].fleetforge | default({}) }}"
+    enrollment_token_file: "{{ hostvars[inventory_hostname].enrollment_token_file | default('') }}"
+    agent_state_file: /var/lib/fleetforge/agent.json
+    # How long the agent listens to the broker each cycle. Long enough for retained
+    # state to arrive, short enough that a cycle is not dominated by waiting.
+    collect_window_seconds: 5
+    agent_plan_only: false
+
+  pre_tasks:
+    - name: Refuse to act on more than one host at a time
+      ansible.builtin.assert:
+        that: ansible_play_hosts | length == 1
+        fail_msg: >-
+          This playbook acts on one named host at a time, but
+          {{ ansible_play_hosts | length }} were selected. Pass --limit <host>.
+        quiet: true
+
+    - name: Require the control plane and the agent artifact
+      ansible.builtin.assert:
+        that:
+          - fleetforge.operator_url | default('') | length > 0
+          - fleetforge.agent_package | default('') | length > 0
+        fail_msg: >-
+          This host has no fleetforge.operator_url and/or fleetforge.agent_package in the
+          inventory. Neither is public — see docs/software-access.md for what you need and
+          where it comes from.
+        quiet: true
+
+    - name: Confirm the agent artifact exists locally
+      ansible.builtin.stat:
+        path: "{{ fleetforge.agent_package }}"
+      delegate_to: localhost
+      become: false
+      register: agent_pkg
+
+    - name: Fail when the agent artifact is missing
+      ansible.builtin.assert:
+        that: agent_pkg.stat.exists
+        fail_msg: >-
+          The agent package {{ fleetforge.agent_package }} was not found. It is not
+          publicly downloadable; obtain it as described in docs/software-access.md.
+        quiet: true
+
+    # Identity, not configuration. If this file exists the gateway is already enrolled,
+    # and re-running integration must upgrade in place rather than mint a second gateway
+    # record for the same physical host.
+    - name: Detect an existing enrolment
+      ansible.builtin.stat:
+        path: "{{ agent_state_file }}"
+      register: enrolment
+
+    - name: Report enrolment state
+      ansible.builtin.debug:
+        msg: >-
+          {{ 'ALREADY ENROLLED — the existing identity at ' ~ agent_state_file ~
+             ' is preserved; this upgrades in place'
+             if enrolment.stat.exists
+             else 'NOT YET ENROLLED — this will enrol ' ~ inventory_hostname ~ ' as a new gateway' }}
+
+    - name: Require a token file for a first enrolment
+      ansible.builtin.assert:
+        that: enrollment_token_file | length > 0
+        fail_msg: >-
+          {{ inventory_hostname }} is not enrolled yet and has no enrollment_token_file in
+          the inventory. Mint a one-time registration token through FleetForge and write it
+          to a file readable only by you.
+        quiet: true
+      when: not enrolment.stat.exists
+
+  tasks:
+    # The token is read from a file and never appears as a command argument: arguments are
+    # visible in process listings and end up in shell history. no_log keeps it out of
+    # Ansible's own output too, which is the other place secrets leak by default.
+    - name: Read the registration token
+      when: not agent_plan_only
+      ansible.builtin.slurp:
+        src: "{{ enrollment_token_file }}"
+      delegate_to: localhost
+      become: false
+      register: token_raw
+      no_log: true
+
+    - name: Create the agent state directory
+      when: not agent_plan_only
+      ansible.builtin.file:
+        path: "{{ agent_state_file | dirname }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0750"
+
+    - name: Copy the agent package to the gateway
+      when: not agent_plan_only
+      ansible.builtin.copy:
+        src: "{{ fleetforge.agent_package }}"
+        dest: /tmp/fleetforge-agent.deb
+        mode: "0600"
+      register: pkg_copied
+
+    - name: Install the agent package
+      when: not agent_plan_only
+      ansible.builtin.apt:
+        deb: /tmp/fleetforge-agent.deb
+        state: present
+      register: agent_installed
+
+    - name: Remove the copied package
+      when: not agent_plan_only
+      ansible.builtin.file:
+        path: /tmp/fleetforge-agent.deb
+        state: absent
+
+    # The collector is the whole integration seam: it points at the SAME broker the
+    # protocol service already publishes to. Nothing about the radio estate changes.
+    - name: Write the agent environment
+      when: not agent_plan_only
+      no_log: true
+      ansible.builtin.copy:
+        content: |
+          FLEETFORGE_AGENT_CONTROL_PLANE_URL={{ fleetforge.operator_url }}
+          FLEETFORGE_AGENT_DISPLAY_NAME={{ inventory_hostname }}-{{ role }}
+          FLEETFORGE_AGENT_STATE_FILE={{ agent_state_file }}
+          {% if token_raw.content is defined %}
+          FLEETFORGE_AGENT_REGISTRATION_TOKEN={{ token_raw.content | b64decode | trim }}
+          {% endif %}
+          {% if fleetforge.ca_file | default('') %}
+          FLEETFORGE_AGENT_CA_FILE=/etc/fleetforge/ca.pem
+          {% endif %}
+          {% if role == 'zigbee' %}
+          FLEETFORGE_AGENT_ZIGBEE2MQTT_ADDR={{ mqtt_endpoint }}
+          FLEETFORGE_AGENT_ZIGBEE2MQTT_COLLECT_WINDOW_SECONDS={{ collect_window_seconds }}
+          {% else %}
+          FLEETFORGE_AGENT_ZWAVEJS_ADDR={{ mqtt_endpoint }}
+          FLEETFORGE_AGENT_ZWAVEJS_COLLECT_WINDOW_SECONDS={{ collect_window_seconds }}
+          {% endif %}
+        dest: /etc/fleetforge/agent.env
+        owner: root
+        group: root
+        mode: "0640"
+      register: agent_env
+
+    - name: Enable and start the agent
+      when: not agent_plan_only
+      ansible.builtin.systemd_service:
+        name: ffagent
+        enabled: true
+        state: restarted
+        daemon_reload: true
+
+  post_tasks:
+    - name: Report what plan mode cannot evaluate
+      when: agent_plan_only
+      ansible.builtin.debug:
+        msg:
+          - "UNKNOWN plan mode does not install, so enrolment cannot be evaluated here."
+          - "Applying will: install the agent package from {{ fleetforge.agent_package }}"
+          - "Applying will: write /etc/fleetforge/agent.env with the {{ role }} collector pointed at {{ mqtt_endpoint }}"
+          - "Applying will: {{ 'preserve the existing gateway identity' if enrolment.stat.exists else 'enrol this host as a NEW gateway' }}"
+
+    - name: Wait for the agent to complete a cycle
+      when: not agent_plan_only
+      ansible.builtin.pause:
+        seconds: 15
+
+    # The unit is one-shot by design: it runs a cycle, exits and is restarted on a timer.
+    # So "is it active right now" is a coin flip against that timer. What distinguishes a
+    # working agent from a broken one is whether its last run SUCCEEDED.
+    # Deliberate: this READS the unit's last Result, which the systemd_service module
+    # does not report -- it manages state rather than describing it. Using the module
+    # here would change the unit in order to ask it a question.
+    - name: Read the agent's last run result  # noqa: command-instead-of-module
+      when: not agent_plan_only
+      ansible.builtin.command: systemctl show ffagent -p ActiveState -p Result --value
+      register: agent_unit
+      changed_when: false
+
+    - name: Report the agent state
+      when: not agent_plan_only
+      ansible.builtin.debug:
+        msg:
+          - "unit state/result: {{ agent_unit.stdout_lines | join(' / ') }}"
+          - "NOTE the unit is one-shot: it runs a cycle, exits and restarts on a timer."
+          - "NOTE a heartbeat is not device freshness. Confirm observations separately."

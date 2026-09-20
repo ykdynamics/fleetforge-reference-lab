@@ -68,14 +68,12 @@ agent artifact is obtainable.
 A failure here is an access problem, not a gateway problem — see
 [Software access](../software-access.md).
 
-## 3.2 Install and enrol the agent — planned (WP-04)
+## 3.2 Install and enrol the agent — available now
 
-> **Planned.** Proposed targets, not implemented.
->
-> ```text
-> make agent-plan    HOST=<alias> ROLE=<role>                      # read-only
-> make agent-install HOST=<alias> ROLE=<role> TOKEN_FILE=<path>
-> ```
+```sh
+make agent-plan    HOST=<alias> ROLE=<role>     # read-only
+make agent-install HOST=<alias> ROLE=<role>
+```
 
 `agent-plan` tells you what installation would change, and — importantly — **whether this
 host is already enrolled**.
@@ -100,15 +98,19 @@ gateway record behind in the control plane for you to retire deliberately. Fresh
 enrolment and a rerun are different operations, with different names, on purpose. See the
 [command contract](../command-contract.md#planned--wp-04-fleetforge-integration).
 
-## 3.3 Confirm the estate is visible — planned (WP-04)
+## 3.3 Confirm the estate is visible
 
-> **Planned.** Proposed targets, not implemented.
+```sh
+make agent-status HOST=<alias> ROLE=<role>      # available now, on the gateway
+```
+
+> **Planned (WP-04).** The control-plane-side views are not implemented yet; use
+> FleetForge's own UI and API meanwhile.
 >
 > ```text
-> make agent-status HOST=<alias>                    # on the gateway
-> make ff-gateway   HOST=<alias>                    # as the control plane sees it
-> make ff-devices                                   # the whole estate
-> make ff-health    HOST=<alias> ROLE=<role>
+> make ff-gateway HOST=<alias>
+> make ff-devices
+> make ff-health  HOST=<alias> ROLE=<role>
 > ```
 
 The same checks are available in the FleetForge UI, and it is worth looking at both.
@@ -134,6 +136,23 @@ Same targets, `ROLE=` changed, different collector. Enrol each gateway with its 
 After the second role is in, the control plane shows both gateways and the devices from
 **both protocols** in one inventory, each attributed to the gateway that observed it.
 That is the first thing in this lab that the standalone estate could not do at all.
+
+Run on the bench, both gateways enrolled against a local control plane:
+
+```text
+rpi-iot-1-zigbee   online     zigbee2mqtt:<plug>    online
+rpi-iot-2-zwave    online     zwavejs:<node>        online
+```
+
+Two protocols, two gateways, one list — and each device attributed to the gateway that
+observed it. Getting here required no change to either protocol service and no device was
+re-paired.
+
+**Re-running preserved identity.** A second `agent-install` reported
+`ALREADY ENROLLED — the existing identity is preserved; this upgrades in place`, and the
+set of gateway records was byte-identical before and after. That is the property worth
+testing deliberately: an integration command that quietly minted a second record for the
+same physical host would corrupt the fleet view in a way nobody notices for weeks.
 
 ## What you should not have had to do
 

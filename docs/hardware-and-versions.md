@@ -36,8 +36,8 @@ Status values: **Qualified** (this repository's procedure was run against it and
 | Z-Wave controller adapter | Zooz ZST39 LR (800 Series Long Range) | Qualified (controller start) | Identified by zwave-js as node type **Controller** |
 | Zigbee wallplug | Sonoff S60ZBTPF | Qualified (paired, metering observed) | Reports live `power`/`current`; `voltage` refreshes only on explicit read |
 | Z-Wave wallplug | Fibaro FGWP-102 | Qualified (included, switched, metering observed) | Binary Switch CC 37 for control, Meter CC 49 for power |
-| FleetForge control plane | — | Unknown | To be pinned in WP-04 |
-| FleetForge agent | — | Unknown | To be pinned in WP-04 |
+| FleetForge control plane | local development deployment | In use | Plain HTTP on the workstation; a TLS deployment is the next step |
+| FleetForge agent | 0.1.0-lab (arm64 .deb) | Qualified (enrolled, observing) | Built from the product repository; not publicly downloadable |
 | Ansible (workstation) | — | Unknown | To be pinned in WP-02 |
 
 The OS baseline moved from Raspberry Pi OS Lite to Ubuntu Server 24.04 LTS when the
@@ -51,10 +51,10 @@ from what version is installed:
 | Exercise | Zigbee role | Z-Wave role |
 |---|---|---|
 | Standalone lamp OFF/ON via the protocol UI | **PASS** — OFF and ON, human-observed, lamp restored | **PASS** — OFF and ON, human-observed, lamp restored |
-| Agent enrolled and heartbeating | Unknown | Unknown |
-| Devices visible in FleetForge with observation timestamps | Unknown | Unknown |
+| Agent enrolled and heartbeating | **PASS** — online, agent 0.1.0-lab | **PASS** — online, agent 0.1.0-lab |
+| Devices visible in FleetForge with observation timestamps | **PASS** — plug visible, attributed to its gateway | **PASS** — node visible, attributed to its gateway |
 | Lamp OFF/ON **through FleetForge** | Unknown | Unknown |
-| Re-run integration preserving gateway identity | Unknown | Unknown |
+| Re-run integration preserving gateway identity | **PASS** — no new record created | Not yet re-run |
 | Reset and rebuild from published instructions alone | Unknown | Unknown |
 
 Both columns are filled in independently. See
