@@ -23,11 +23,17 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq shellcheck python3-yaml ansible-core
+          sudo apt-get install -y -qq python3-yaml ansible-core
+          # Pinned rather than whatever the runner image ships. An older shellcheck
+          # reported a finding a newer local one did not, which is a slow way to find out
+          # that "lint passes" meant different things in two places.
+          curl -fsSL https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz \
+            | tar -xJf - --strip-components=1 -C /usr/local/bin shellcheck-v0.11.0/shellcheck
           pipx install ansible-lint
 
       - name: Shell syntax and lint
         run: |
+          shellcheck --version | sed -n '2p'
           for f in scripts/*.sh; do
             case "$f" in
               */preflight-remote.sh) sh -n "$f" ;;   # POSIX sh, runs on the gateway
