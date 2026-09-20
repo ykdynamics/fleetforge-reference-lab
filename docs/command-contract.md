@@ -19,6 +19,12 @@ that later work packages extend a shape rather than invent one per chapter.
 | `make preflight HOST= ROLE=` | reads | Read-only inspection of one gateway over SSH |
 | `make provision-plan HOST= ROLE=` | reads | Shows what provisioning would change on one gateway |
 | `make provision HOST= ROLE=` | **mutates** | Provisions one named gateway |
+| `make stack-config HOST= ROLE=` | reads | Renders and validates the protocol stack configuration |
+| `make stack-up HOST= ROLE=` | **mutates** | Deploys and starts the role's protocol services |
+| `make stack-status HOST= ROLE=` | reads | Service state, log bounds in effect, broker reachability |
+| `make stack-logs HOST= ROLE=` | reads | Tails the role's service logs |
+| `make stack-down HOST= ROLE=` | **mutates** | Stops the services, keeping all data and pairings |
+| `make radio-devices HOST= ROLE=` | reads | Names devices and judges observation freshness |
 
 `make check` exits non-zero on the first failing check and prints the offending file and
 line. It touches no host and no network.
@@ -93,12 +99,6 @@ defaulting to loopback, so nothing is exposed to a wider network by accident.
 
 | Target | Args | Reads/Mutates | Prerequisites | Expected output | On failure |
 |---|---|---|---|---|---|
-| `stack-config` | `HOST` `ROLE` | reads | provisioned | Renders and validates the Compose configuration. Changes nothing | Exit `1` with the validation error |
-| `stack-up` | `HOST` `ROLE` | **mutates** | `stack-config` passes | Starts the broker and the role's protocol service, then prints service status | Exit `1`; leaves already-running services alone |
-| `stack-down` | `HOST` `ROLE` | **mutates** | — | Stops the role's services. **Keeps all volumes and pairings** | Exit `1` |
-| `stack-status` | `HOST` `ROLE` | reads | — | Per-service state, bounded-logging settings actually in effect, broker reachability, disk headroom | Exit `1` on `FAIL` |
-| `stack-logs` | `HOST` `ROLE` | reads | — | Tails the role's service logs | Exit `1` |
-| `radio-devices` | `HOST` `ROLE` | reads | stack up | Devices the protocol service holds, with identity and last-seen. Service health is reported **separately** from device responsiveness | `UNKNOWN` where the service cannot be queried |
 | `radio-join-open` | `HOST` `ROLE` `MINUTES` | **mutates** | stack up | Opens pairing/inclusion on **this gateway only**, for a bounded window, and reports the closing time | Exit `1`. Never opens joining on more than the named host |
 | `radio-join-close` | `HOST` `ROLE` | **mutates** | — | Closes pairing/inclusion. Safe to run when already closed | Exit `1` |
 | `lamp-off` / `lamp-on` | `HOST` `ROLE` `DEVICE` | **mutates** | device paired | Switches the lamp **through the protocol service**, then reports what the device reported back and prompts for a human observation | Exit `1`. Does not retry automatically |

@@ -34,6 +34,8 @@
     zigbee2mqtt_image: "koenkk/zigbee2mqtt:2.14.1"
     zwavejs_image: "zwavejs/zwave-js-ui:11.24.1"
     stack_deploy_only: false
+    # The topic prefix the Z-Wave values are published under.
+    zwavejs_mqtt_prefix: "zwavejs"
 
   pre_tasks:
     - name: Refuse to act on more than one host at a time
@@ -107,6 +109,61 @@
             src: "{{ lab_root }}/config/zwavejs-session-secret"
           register: secret_raw
 
+    # Z-Wave JS UI's MQTT gateway is OFF until configured, so a Z-Wave gateway can have
+    # an included, responding plug and a broker carrying nothing at all. Nothing looks
+    # wrong, because nothing is -- but anything observing this gateway over MQTT sees an
+    # empty estate with no error to explain it.
+    #
+    # This MERGES into settings.json rather than templating it. That file is owned by the
+    # application and holds the S2 security keys: replacing it would cost the Z-Wave
+    # network its security configuration and force every device to be re-included.
+    - name: Configure the Z-Wave JS UI MQTT gateway
+      when: role == 'zwave'
+      block:
+        - name: Read the existing Z-Wave JS UI settings
+          ansible.builtin.slurp:
+            src: "{{ lab_root }}/data/zwave-js-ui/settings.json"
+          register: zwavejs_settings_raw
+          failed_when: false
+
+        - name: Merge the MQTT gateway settings, preserving everything else
+          vars:
+            existing: >-
+              {{ (zwavejs_settings_raw.content | b64decode | from_json)
+                 if (zwavejs_settings_raw.content is defined) else {} }}
+            desired:
+              mqtt:
+                name: "{{ inventory_hostname }}"
+                host: "mqtt://mosquitto"
+                port: 1883
+                qos: 1
+                prefix: "{{ zwavejs_mqtt_prefix }}"
+                reconnectPeriod: 3000
+                retain: true
+                clean: true
+                auth: false
+                disabled: false
+              gateway:
+                # 0 = ValueID topics, read off the application's own gw_types enum.
+                # Every value gets its own topic, which is the shape a collector can
+                # parse per node without guessing at friendly names.
+                type: 0
+                # Publish each node's resolved identity, so a consumer sees vendor and
+                # product rather than only numeric ids.
+                publishNodeDetails: true
+          ansible.builtin.copy:
+            content: "{{ existing | combine(desired, recursive=true) | to_nice_json }}"
+            dest: "{{ lab_root }}/data/zwave-js-ui/settings.json"
+            owner: "{{ lab_user }}"
+            group: "{{ lab_user }}"
+            mode: "0640"
+          when: >-
+            existing.mqtt is not defined
+            or existing.mqtt.disabled | default(true)
+            or existing.mqtt.host | default('') != 'mqtt://mosquitto'
+            or existing.gateway.type | default(-1) != 0
+          notify: Restart Z-Wave JS UI
+
     - name: Place the broker configuration
       ansible.builtin.template:
         src: mosquitto.conf.j2
@@ -150,6 +207,14 @@
         chdir: "{{ lab_root }}/compose"
       register: compose_up
       changed_when: "'Started' in compose_up.stderr or 'Created' in compose_up.stderr"
+
+  handlers:
+    # Settings are read at start, so the container has to come back for them to apply.
+    - name: Restart Z-Wave JS UI
+      ansible.builtin.command:
+        cmd: docker compose --profile zwave restart zwave-js-ui
+        chdir: "{{ lab_root }}/compose"
+      changed_when: true
 
   post_tasks:
     - name: Report the stack state
