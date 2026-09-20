@@ -53,7 +53,7 @@ from what version is installed:
 | Standalone lamp OFF/ON via the protocol UI | **PASS** — OFF and ON, human-observed, lamp restored | **PASS** — OFF and ON, human-observed, lamp restored |
 | Agent enrolled and heartbeating | **PASS** — online, agent 0.1.0-lab | **PASS** — online, agent 0.1.0-lab |
 | Devices visible in FleetForge with observation timestamps | **PASS** — plug visible, attributed to its gateway | **PASS** — node visible, attributed to its gateway |
-| Lamp OFF/ON **through FleetForge** | **PASS** — OFF and ON, human-observed | **BLOCKED** — the agent's broker allowlist omits the Z-Wave JS address |
+| Lamp OFF/ON **through FleetForge** | **PASS** — OFF and ON, human-observed | **BLOCKED** — [fleetforge#415](https://github.com/ykdynamics/fleetforge/issues/415): the agent's broker allowlist omits the Z-Wave JS address |
 | Re-run integration preserving gateway identity | **PASS** — no new record created | Not yet re-run |
 | Reset and rebuild from published instructions alone | Unknown | Unknown |
 
