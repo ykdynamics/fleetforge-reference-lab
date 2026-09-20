@@ -204,6 +204,38 @@ the diagnosis rather than the folklore.
 **Restore the lamp to lit before moving on.** The estate should start chapter 3 in a known
 state.
 
+### A recorded standalone outcome
+
+The Z-Wave exercise run on the bench, written in the
+[agreed shape](../evidence-conventions.md#recording-an-outcome):
+
+```text
+what was asked   Binary Switch (CC 37) targetValue → false, then → true, on the
+                 paired node, through the protocol service's own MQTT interface
+receipts         none — see below
+device-reported  currentValue false then true; Power 0 W then 16.6 W,
+                 freshly timestamped in both directions
+human-observed   operator reported the lamp went dark, then lit again
+outcome          PASS — witness: human-observed
+versions         Z-Wave JS UI 11.24.1 / zwave-js 15.29.0 · Fibaro FGWP-102 fw 3.2
+restoration      lamp returned to lit, confirmed by the operator
+```
+
+Two things about that record are worth dwelling on.
+
+**The outcome rests on the human observation, not the device report.** The plug reporting
+`currentValue: false` after being told to switch off is closer to an echo than a
+confirmation. It is recorded as `device-reported` and weighted accordingly. Had nobody
+been watching, the correct outcome would have been `UNKNOWN` — every command succeeding
+and nobody looking is a successful *request* and an unknown *result*.
+
+**The `receipts` line is empty, and that is the point.** The standalone path produces
+nothing you can audit tomorrow: no record of who switched it, when, or whether it worked.
+The evidence above exists only because someone wrote it down by hand, immediately, while
+watching. Scale that to fifty devices and it stops being possible. That gap — not the
+switching, which works fine — is what [chapter 3](03-fleetforge-integration.md) is
+about.
+
 ### The two protocols do not share a control model
 
 Both roles were brought up on the bench, and the difference is the point of having two.
