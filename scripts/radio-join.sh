@@ -30,9 +30,26 @@ case "$ACTION" in
     case "$MINUTES" in
       ''|*[!0-9]*) die_usage "MINUTES must be a whole number, not '$MINUTES'" ;;
     esac
-    if [ "$MINUTES" -lt 1 ] || [ "$MINUTES" -gt 15 ]; then
-      die_usage "MINUTES must be between 1 and 15 — an unbounded window is how devices join the wrong gateway"
+    if [ "$MINUTES" -lt 1 ]; then
+      die_usage "MINUTES must be at least 1"
     fi
+    # The ceiling is the protocol service's, not a preference. Zigbee2MQTT refuses a
+    # window over 254 seconds outright -- "Cannot permit join for more than 254 seconds"
+    # -- so anything above 4 minutes is rejected rather than silently clamped. Getting
+    # this wrong sends an operator to stand at a plug pressing buttons into a window that
+    # never opened.
+    case "$ROLE" in
+      zigbee)
+        if [ "$MINUTES" -gt 4 ]; then
+          die_usage "MINUTES must be 1-4 for zigbee — Zigbee2MQTT refuses a join window over 254 seconds"
+        fi
+        ;;
+      zwave)
+        if [ "$MINUTES" -gt 15 ]; then
+          die_usage "MINUTES must be 1-15 — an unbounded window is how devices join the wrong gateway"
+        fi
+        ;;
+    esac
     ;;
   close) ;;
   *) printf 'FAIL ACTION must be open or close, not %s\n' "$ACTION" >&2; exit 2 ;;
