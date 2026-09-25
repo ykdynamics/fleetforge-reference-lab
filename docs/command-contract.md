@@ -35,6 +35,7 @@ that later work packages extend a shape rather than invent one per chapter.
 | `make scenario-restore HOST= ROLE= DEVICE=` | **mutates** | Returns a lamp to its baseline; destroys nothing |
 | `make agent-remove HOST= CONFIRM=` | **mutates** | Removes the agent, keeping pairings and identity |
 | `make protocol-data-reset HOST= ROLE= CONFIRM=` | **mutates** | Destroys the radio network and every pairing |
+| `make radio-adapter-reset HOST= ROLE= CONFIRM=` | **mutates** | Destroys the network held in the adapter itself |
 | `make host-reset HOST= CONFIRM=` | **mutates** | Destroys everything the lab installed on that host |
 
 `make check` exits non-zero on the first failing check and prints the offending file and
