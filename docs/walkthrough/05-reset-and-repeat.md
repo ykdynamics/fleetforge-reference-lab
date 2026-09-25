@@ -132,9 +132,11 @@ will simply come back. Plan to re-pair.
 
 ## 5.3b Radio adapter reset — available, not yet run on hardware
 
-> **Implemented, guards tested, the destructive path unverified.** Running it destroys a
-> radio network and requires re-pairing every device by hand, so it has not been exercised
-> here. The lab does not claim what it has not run.
+> **Verified on the Zigbee role.** Run on the bench: the adapter and service were
+> reconciled, the coordinator formed a network with a **new** `ext_pan_id` and started
+> cleanly with no panId collision, and the plug was re-paired by hand and came back through
+> the agent into FleetForge without re-enrolling the gateway. The Z-Wave path is
+> implemented but has not been run.
 
 ```sh
 make radio-adapter-reset HOST=<alias> ROLE=<role> CONFIRM=<alias>
@@ -164,7 +166,12 @@ The two roles reconcile differently, because the services expose different thing
 | Z-Wave | Z-Wave JS UI exposes the controller's own factory reset. That is a true adapter-side reset — the controller forgets its home id and every node — and the target waits for the controller to confirm rather than assuming the request landed |
 
 Afterwards the adapter and the service agree on an empty network, and every device must be
-re-paired. **Your inventory still names the old device**, so update `protocol_ref` after
+re-paired. On the bench the service reported `Currently 0 devices are joined` and the
+device registry agreed — worth checking both, because `coordinator_backup.json` still
+listed a stale device count that the live registry did not.
+
+Two things to expect after re-pairing: the plug returns in whatever state its
+`power_on_behavior` dictates (ours came back **off**), and its accumulated `energy` resets. **Your inventory still names the old device**, so update `protocol_ref` after
 re-pairing or the lamp targets will address something that no longer exists.
 
 ## 5.4 Full host reset — available now

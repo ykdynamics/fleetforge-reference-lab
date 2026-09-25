@@ -113,10 +113,20 @@ make radio-join-open  HOST=<alias> ROLE=<role> MINUTES=<n>
 make radio-join-close HOST=<alias> ROLE=<role>
 ```
 
-The window opens on the **named host only**, for between 1 and 15 minutes — an unbounded
-window is how a device being reset lands on the wrong coordinator. Both targets confirm
-with the service that the window really changed state rather than reporting success for a
-published message, which is the same distinction this lab draws everywhere else.
+The window opens on the **named host only** and is bounded, because an unbounded window is
+how a device being reset lands on the wrong coordinator.
+
+**The ceiling differs by protocol, and it is the service's, not a preference.**
+Zigbee2MQTT refuses a window over 254 seconds outright — `Cannot permit join for more than
+254 seconds` — so `MINUTES` is 1–4 for Zigbee and 1–15 for Z-Wave. Asking for more is
+rejected rather than silently clamped.
+
+Both targets confirm with the service that the window really changed state rather than
+reporting success for a published message. That is not ceremony: the first version of this
+printed `OPEN` on a request the service had refused, and the only reason anyone found out
+was that the verification was added afterwards and immediately caught it. Standing at a
+plug pressing buttons into a window that never opened is a genuinely miserable way to spend
+ten minutes.
 
 Putting the device into its own join mode stays manual and physical.
 
