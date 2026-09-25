@@ -17,6 +17,7 @@ From least to most destructive:
 | **Scenario restoration** | Nothing | Everything | The lamp is off, or the estate is mid-exercise, and you want the documented baseline back |
 | **Agent removal** | The FleetForge agent and its configuration | Radio stack, pairings, protocol data — **and the enrolment identity, by default** | You want the standalone estate back, or you are reinstalling the agent |
 | **Protocol-data reset** | The protocol service's persistent data — **the radio network and every pairing on that gateway** | Host, Docker, agent and its identity | The radio state is corrupt, or you want a genuinely fresh pairing exercise |
+| **Radio adapter reset** | The network held in the **adapter itself**, plus the service's copy | The host, Docker, the agent and its identity | `CONFIRM=HOST` |
 | **Full host reset** | The lab's data, services, agent and identity on that host | The OS, your SSH access, host provisioning (Docker, masked services) **and the adapter's own radio network** | You are rebuilding that gateway from scratch |
 
 They are deliberately **four targets**, not one target with a flag. A single `reset` with
@@ -128,6 +129,43 @@ state*. It is not a universal promise of radio-network restoration: some adapter
 network identity in the adapter itself, and restoration behaviour is adapter-specific. The
 procedure reports the limit that applies to your adapter instead of implying the pairings
 will simply come back. Plan to re-pair.
+
+## 5.3b Radio adapter reset — available, not yet run on hardware
+
+> **Implemented, guards tested, the destructive path unverified.** Running it destroys a
+> radio network and requires re-pairing every device by hand, so it has not been exercised
+> here. The lab does not claim what it has not run.
+
+```sh
+make radio-adapter-reset HOST=<alias> ROLE=<role> CONFIRM=<alias>
+```
+
+This is the reset the other three cannot do. They clear what the protocol *service* stores;
+they cannot clear what the **adapter** stores, and a Zigbee coordinator keeps its network in
+its own NVRAM. Wipe one side and not the other and the gateway does not start at all:
+
+```text
+error: network commissioning timed out — most likely network with the same panId
+       or extendedPanId already exists nearby
+```
+
+The service is trying to form a new network while the stick still holds the old one.
+
+**This is the one reset a backup cannot undo.** Restoring an archive re-creates the
+service's files; it cannot put an old network back into a stick that has been told to
+forget it. Reach for this when the two sides have diverged and the service will not start,
+or when you deliberately want a new network.
+
+The two roles reconcile differently, because the services expose different things:
+
+| | How |
+|---|---|
+| Zigbee | No bridge request clears the coordinator's NVRAM, so it goes the other way: the stored network is cleared and a configuration seeded with `network_key`, `pan_id` and `ext_pan_id` all set to `GENERATE`. The service forms a genuinely new network, and new identifiers mean no collision with whatever the stick still holds |
+| Z-Wave | Z-Wave JS UI exposes the controller's own factory reset. That is a true adapter-side reset — the controller forgets its home id and every node — and the target waits for the controller to confirm rather than assuming the request landed |
+
+Afterwards the adapter and the service agree on an empty network, and every device must be
+re-paired. **Your inventory still names the old device**, so update `protocol_ref` after
+re-pairing or the lamp targets will address something that no longer exists.
 
 ## 5.4 Full host reset — available now
 
