@@ -59,8 +59,8 @@ from what version is installed:
 | Scenario restoration (lamp to baseline) | **PASS** — idempotent, destroys nothing | **PASS** — idempotent, destroys nothing |
 | Protocol-state backup with verified checksum | **PASS** — archived, verified, service restarted cleanly | **PASS** — archived, verified, service restarted cleanly |
 | Radio adapter reset | **PASS** — new network formed, no panId collision, device re-paired | **PASS** — new home id, device re-included, switched through FleetForge |
-| Reset and rebuild from published instructions alone | **PARTIAL** — rebuild works, but the reset leaves the coordinator unable to start until a backup is restored | Not yet run |
-| Backup restore recovers the network and pairings | **PASS** — same adapter; no device re-paired | Not yet run |
+| Reset and rebuild from published instructions alone | **PASS** — rebuild works; the reset leaves the coordinator unable to start, so a backup restore or `radio-adapter-reset` is part of the path | **PASS** — controller kept the network and rediscovered the device; no re-inclusion needed |
+| Backup restore recovers the network and pairings | **PASS** — same adapter; no device re-paired | Not needed — the controller holds the network |
 
 Both columns are filled in independently. See
 [Evidence conventions § Z-Wave support is established, never inherited](evidence-conventions.md#z-wave-support-is-established-never-inherited).
