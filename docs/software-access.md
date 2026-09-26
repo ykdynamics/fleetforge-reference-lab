@@ -64,15 +64,33 @@ So you need either:
 If a pull returns `unauthorized` or `denied`, that is this access requirement — not a
 misconfigured gateway.
 
+## How to get access
+
+Open an issue on this repository, or contact the maintainers through the
+[FleetForge](https://github.com/ykdynamics/fleetforge) organisation, describing what you
+want to run. Access is granted per person rather than published, so asking is the
+mechanism, not a workaround for one.
+
+Being told "not public" without being told how to ask is a wall. This is a door.
+
 ## If you do not have access
 
-**Chapters 1 and 2 still work completely.** The standalone estate — provisioning, the
-protocol stacks, pairing, and switching the lamp from the protocol UI — depends on nothing
-private. That is a genuinely useful lab on its own, and it is where the problems this lab
-is about actually become visible.
+**Build chapters 1 and 2 anyway. They are the more interesting half.**
 
-Chapters 3 to 5 are gated on the access above. This lab will say so at the point where it
-matters rather than failing halfway through with a permission error.
+The standalone estate — provisioning, the protocol stacks, pairing, switching a real lamp
+from a protocol UI — depends on nothing private, and finishing it leaves you with a working
+two-protocol IoT lab you can keep using.
+
+It also leaves you with something more useful than a tour of a dashboard: the actual
+experience of the problems a fleet control plane exists to solve. Two web UIs with two
+device lists and no shared inventory. No record of who switched what, or whether it worked.
+A gateway that could go quiet overnight and only tell you when you next happened to look.
+Two protocols that share no control model, so everything learned about one is partly
+relearned for the other.
+
+Chapters 3 to 5 then show what changes when a control plane is added to *that* estate. They
+are gated on the access above, and the lab says so at the point where it matters rather
+than failing halfway through with a permission error.
 
 ## What this repository will never contain
 

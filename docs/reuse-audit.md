@@ -98,18 +98,35 @@ measuring this hardware rather than from inherited code.
 The one remaining candidate is the radio-state backup with its checksum manifest, which
 WP-06 needs. Everything else can stay where it is.
 
-### 3. Are the FleetForge agent artifacts going to be publicly available?
+### 3. FleetForge artifacts stay gated — settled, and revisitable
 
-Verified 2026-09-20: an unauthenticated pull of the published agent container image is
-rejected (`403`). Two viable answers, and they produce different documentation:
+The control-plane and agent images are private; an unauthenticated pull is rejected
+(`403`). They stay that way for now, and the reasoning is recorded here so the decision can
+be revisited on evidence rather than re-argued from scratch.
 
-- **Public artifacts** — a stranger can complete the whole journey; the lab documents a
-  plain pull.
-- **Gated artifacts** — the lab documents a credentialed pull and states plainly that
-  chapters 3 to 5 need access that chapters 1 and 2 do not.
+**It is a one-way door.** Publishing a package later is a click. Un-publishing one that
+people have pulled and built against is not, and it would land at the worst moment —
+when somebody's lab breaks. With reversal costs that asymmetric, the reversible side wins
+until there is a reason to move.
 
-Either is workable. Leaving it undecided is not, because it determines what the lab can
-promise. Tracked in [Software access](software-access.md).
+**Public artifacts optimise for the wrong thing right now.** They serve volume of
+unattended trials. What the product needs is a small number of deep engagements, and in
+those access is provisioned as part of the engagement anyway — so gating costs nothing
+there.
+
+**The lab does not depend on it.** Chapters 1 and 2 need nothing private and are the half
+that makes the case at all: a reader who builds them has *felt* the problem rather than
+been shown a dashboard. That is a better place to start a conversation than an unattended
+verdict.
+
+**What would change it:** a design partner who must self-provision without the maintainers
+in the loop; a decision that this lab is a marketing funnel rather than an engagement tool,
+where reach matters more than control; or commercial validation landing, after which giving
+away the runtime costs less.
+
+The obligation the decision creates is answered in [Software access](software-access.md):
+the gate says how to ask. A closed door is a legitimate product choice. A blank wall is
+not.
 
 ### 4. Is there a control plane a lab user can point at?
 

@@ -41,11 +41,17 @@ somebody's chat history.
 | **Devices** | One smart wallplug per role, and a lamp to plug into it |
 | **OS** | Ubuntu Server 24.04 LTS (64-bit), already imaged and reachable over SSH |
 | **Workstation** | Linux or macOS with `make`, `git`, `ssh` and Ansible |
-| **FleetForge** | Control-plane access **and** agent artifacts — neither is public; read [Software access](docs/software-access.md) first |
+| **FleetForge** | Only for chapters 3–5. Control-plane access **and** agent artifacts, neither of which is public — read [Software access](docs/software-access.md), including how to ask |
 
 Either role runs on its own. One Pi with one radio and one lamp is a complete, useful
 lab; the second role exists to show that a control path proven on one protocol is not
 proof for the other.
+
+**You do not need FleetForge to get value from this.** Chapters 1 and 2 build a working
+two-protocol estate and require nothing private — and they are where the problems a control
+plane solves actually become visible, rather than being described to you. Chapters 3 to 5
+add FleetForge to that estate and need access you may not have; [Software access](docs/software-access.md)
+says what is needed and how to ask for it.
 
 Exact hardware models and the versions this lab has actually been run against are tracked
 in [Hardware and versions](docs/hardware-and-versions.md). That table is deliberately
