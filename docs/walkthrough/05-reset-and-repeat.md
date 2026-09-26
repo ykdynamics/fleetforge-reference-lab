@@ -217,6 +217,31 @@ host is ready to be provisioned again from [chapter 2](02-standalone-estate.md).
 Use this on hardware you are willing to rebuild. It is the right tool for qualifying the
 walkthrough from a clean start, and the wrong tool for almost anything else.
 
+## The same reset does very different things per protocol
+
+Both roles have now been rebuilt from `host-reset` through to operating the lamp. The
+sequence is identical; the outcome is not, and the difference is the single most useful
+thing in this chapter.
+
+| | Zigbee | Z-Wave |
+|---|---|---|
+| After `host-reset` | the service **will not start** | starts normally |
+| Why | the coordinator keeps the network in its own NVRAM, so the service forms a *new* one alongside the old and they collide on panId | the controller keeps the network **and the node list**, so the service reads both back |
+| Devices | must be **re-paired by hand** | **rediscovered automatically** — `[Node 002] Ready … Interview COMPLETED`, no re-inclusion |
+| Recovery needed | restore a backup, or `radio-adapter-reset` | none |
+
+On the bench the Z-Wave gateway came back on the **same home id** it had before the wipe,
+found its plug unassisted, and was switched through FleetForge minutes later. The Zigbee
+gateway, given the same command, was dead until a backup was restored.
+
+So "I reset the gateway" is not one fact. On Z-Wave it is nearly free; on Zigbee it costs
+you the mesh unless you have a backup or reset the adapter too. Anyone reasoning about one
+protocol from experience with the other will be wrong, and wrong in the expensive direction.
+
+**What `host-reset` costs on both:** the agent's enrolment identity, so the gateway enrols
+afresh and the old record is stranded. Retiring it now works — archive then delete — which
+it did not before [fleetforge#418](https://github.com/ykdynamics/fleetforge/issues/418).
+
 ## What a clean start actually found
 
 The rebuild was run on the Zigbee gateway: `host-reset`, then the published instructions
