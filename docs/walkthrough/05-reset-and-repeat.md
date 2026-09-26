@@ -132,11 +132,11 @@ will simply come back. Plan to re-pair.
 
 ## 5.3b Radio adapter reset — available, not yet run on hardware
 
-> **Verified on the Zigbee role.** Run on the bench: the adapter and service were
-> reconciled, the coordinator formed a network with a **new** `ext_pan_id` and started
-> cleanly with no panId collision, and the plug was re-paired by hand and came back through
-> the agent into FleetForge without re-enrolling the gateway. The Z-Wave path is
-> implemented but has not been run.
+> **Verified on both roles.** Zigbee: the coordinator formed a network with a new
+> `ext_pan_id` and started cleanly with no panId collision. Z-Wave: the controller took a
+> new home id and came back with only itself on the network. In both cases the device was
+> re-paired by hand and returned through the agent into FleetForge **without re-enrolling
+> the gateway**, and the lamp was switched through FleetForge afterwards.
 
 ```sh
 make radio-adapter-reset HOST=<alias> ROLE=<role> CONFIRM=<alias>
@@ -165,13 +165,43 @@ The two roles reconcile differently, because the services expose different thing
 | Zigbee | No bridge request clears the coordinator's NVRAM, so it goes the other way: the stored network is cleared and a configuration seeded with `network_key`, `pan_id` and `ext_pan_id` all set to `GENERATE`. The service forms a genuinely new network, and new identifiers mean no collision with whatever the stick still holds |
 | Z-Wave | Z-Wave JS UI exposes the controller's own factory reset. That is a true adapter-side reset — the controller forgets its home id and every node — and the target waits for the controller to confirm rather than assuming the request landed |
 
+### Four things the Z-Wave run taught that the Zigbee one did not
+
+**1. Your devices do not know the controller was reset.** A controller factory reset leaves
+every device still believing it is included, and the controller can no longer exclude them
+because it has forgotten they exist. Each device must be **factory reset from its own
+side** before it will join anything. For the plug used here that is: hold the button until
+the LED ring glows yellow, release, then single-click to confirm — and only then the
+inclusion press. Two failed attempts on the bench were nothing but this missing step.
+
+**2. The inclusion window is not as long as you asked for.** Z-Wave JS UI times inclusion
+out after `commandsTimeout` seconds and falls back to **30** when that is unset. A target
+announcing four minutes while the controller allowed thirty seconds is worse than useless:
+it sends someone to stand at a plug pressing a button into a window that closed while they
+were reading the instructions. `radio-join-open` now sets that timeout from `MINUTES` so
+the number it prints is the number you get.
+
+**3. `success` is not `result`.** `startInclusion` answers `success: true` for a call it
+accepted and `result: false` when inclusion did not actually start — which is what happens
+if a window is already open. Checking only `success` reports an open window that is not
+there.
+
+**4. The broker keeps the dead network alive.** Retained MQTT state survives the reset, so
+every node of a network that no longer exists still answers a subscribe. On the bench a
+node showed as present with a `lastActive` **ten hours old**, listed beside the real one.
+The reset now clears those topics — 48 of them, in that run. Without it the device
+inventory confidently describes hardware the controller has forgotten.
+
 Afterwards the adapter and the service agree on an empty network, and every device must be
 re-paired. On the bench the service reported `Currently 0 devices are joined` and the
 device registry agreed — worth checking both, because `coordinator_backup.json` still
 listed a stale device count that the live registry did not.
 
-Two things to expect after re-pairing: the plug returns in whatever state its
-`power_on_behavior` dictates (ours came back **off**), and its accumulated `energy` resets. **Your inventory still names the old device**, so update `protocol_ref` after
+Three things to expect after re-pairing: the plug returns in whatever state its
+`power_on_behavior` dictates (ours came back **off**), its accumulated `energy` resets, and
+on Z-Wave **the node id changes** — ours came back as node 2 where it had been node 9, with
+no location segment in its topic. Update `protocol_ref` in your inventory or every device
+target will address something that no longer exists. **Your inventory still names the old device**, so update `protocol_ref` after
 re-pairing or the lamp targets will address something that no longer exists.
 
 ## 5.4 Full host reset — available now
