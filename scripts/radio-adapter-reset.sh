@@ -97,19 +97,57 @@ sudo chown \$(id -u):\$(id -g) '$data/configuration.yaml'"
     # Z-Wave JS UI exposes the controller's own factory reset over its MQTT API, which is
     # the genuine adapter-side reset: the controller forgets its home id and every node.
     api="zwavejs/_CLIENTS/ZWAVE_GATEWAY-${HOST}/api"
-    printf -- '-- asking the controller to factory reset --\n'
-    remote "sudo docker exec -d ff-lab-mosquitto sh -c \"mosquitto_sub -h 127.0.0.1 -t '$api/hardReset' -C 1 -W 25 > /tmp/hardreset.json 2>&1\""
-    sleep 1
+    # The controller's home id BEFORE the reset. This, not the API reply, is what tells us
+    # whether the reset happened -- see below.
+    before_home=$(remote "sudo ls /opt/fleetforge-lab/data/zwave-js-ui/ 2>/dev/null | grep -oE '^[0-9a-f]{8}' | sort -u | tr '\n' ' '" || true)
+    printf -- '-- asking the controller to factory reset (home id before: %s) --\n' "${before_home:-unknown}"
     remote "sudo docker exec ff-lab-mosquitto mosquitto_pub -h 127.0.0.1 -t '$api/hardReset/set' -m '{\"args\":[]}'"
-    sleep 12
-    reply=$(remote "sudo docker exec ff-lab-mosquitto cat /tmp/hardreset.json 2>/dev/null" || true)
-    ok=$(printf '%s' "$reply" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("success"))' 2>/dev/null || echo unknown)
-    if [ "$ok" != True ]; then
-      msg=$(printf '%s' "$reply" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("message",""))' 2>/dev/null || true)
-      printf '\nFAIL the controller did not confirm the reset: %s\n' "${msg:-no reply within 12s}" >&2
-      printf '     Treat the adapter as unchanged and investigate before retrying.\n' >&2
+
+    # Do NOT verify from the API reply. hardReset() destroys the controller instance and
+    # re-initialises it, so the reply path is torn down by the very operation it would
+    # confirm: the service logs "hard reset succeeded" and then, milliseconds later,
+    # "hard reset failed: The controller instance is being destroyed (ZW0111)" -- and it is
+    # the second one that reaches the caller. Trusting it reports FAIL on a reset that
+    # worked, which is worse than reporting nothing: it invites a retry of a destructive
+    # operation, or leaves an operator believing a network they no longer have.
+    #
+    # Verify by outcome instead: a NEW home id, and the controller alone on it.
+    printf -- '-- waiting for the controller to come back on a new network --\n'
+    new_home=""
+    for _ in $(seq 1 30); do
+      sleep 4
+      current=$(remote "sudo ls /opt/fleetforge-lab/data/zwave-js-ui/ 2>/dev/null | grep -oE '^[0-9a-f]{8}' | sort -u | tr '\n' ' '" || true)
+      for h in $current; do
+        case " $before_home " in
+          *" $h "*) ;;
+          *) new_home=$h ;;
+        esac
+      done
+      [ -n "$new_home" ] && break
+    done
+
+    if [ -z "$new_home" ]; then
+      printf '\nFAIL no new home id appeared within two minutes.\n' >&2
+      printf '     The controller may or may not have reset. Check the driver log before\n' >&2
+      printf '     retrying, because a second reset on an already-reset controller is not\n' >&2
+      printf '     harmless -- it discards the network you just created.\n' >&2
+      printf '       make stack-logs HOST=%s ROLE=%s\n' "$HOST" "$ROLE" >&2
       exit 1
     fi
+    printf 'PASS the controller reset: new home id %s (was %s)\n' "$new_home" "${before_home:-unknown}"
+
+    # The broker keeps the destroyed network's retained state, so every node of a network
+    # that no longer exists still answers a subscribe. Left alone, the device inventory
+    # lists hardware the controller has forgotten -- observed on the bench, where a node
+    # showed as present with a lastActive ten hours old.
+    printf -- '-- clearing retained topics for the old network --\n'
+    cleared=$(remote "topics=\$(sudo timeout 12 docker exec ff-lab-mosquitto mosquitto_sub -h 127.0.0.1 -t 'zwavejs/#' -v -W 8 2>/dev/null | awk '{print \$1}' | grep -vE '_CLIENTS|/driver/' | sort -u)
+      n=0
+      for t in \$topics; do
+        sudo docker exec ff-lab-mosquitto mosquitto_pub -h 127.0.0.1 -t \"\$t\" -r -n && n=\$((n+1))
+      done
+      echo \$n" || echo 0)
+    printf 'cleared %s retained topic(s)\n' "${cleared:-0}"
     ;;
 esac
 

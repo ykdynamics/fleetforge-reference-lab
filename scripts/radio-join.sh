@@ -92,6 +92,22 @@ case "$ROLE" in
     #   <prefix>/_CLIENTS/<clientID>/api/<method>/set
     # with the client id built from the gateway name configured in its settings.
     api="zwavejs/_CLIENTS/ZWAVE_GATEWAY-${HOST}/api"
+    # MINUTES has to actually govern the window. Z-Wave JS UI times inclusion out after
+    # `commandsTimeout` seconds and falls back to 30 when unset -- so a target that
+    # printed "4 minutes" while the controller gave 30 seconds was lying to an operator
+    # standing at a plug. Set it before opening.
+    if [ "$ACTION" = open ]; then
+      remote "sudo python3 - <<PYEOF
+import json, pathlib
+p = pathlib.Path('$LAB_ROOT/data/zwave-js-ui/settings.json')
+d = json.loads(p.read_text())
+want = $MINUTES * 60
+if (d.get('zwave') or {}).get('commandsTimeout') != want:
+    d.setdefault('zwave', {})['commandsTimeout'] = want
+    p.write_text(json.dumps(d, indent=2))
+    print('set commandsTimeout to', want)
+PYEOF"
+    fi
     method=stopInclusion
     args='[]'
     if [ "$ACTION" = open ]; then
@@ -111,6 +127,13 @@ case "$ROLE" in
     if [ "$ok" != True ]; then
       msg=$(printf '%s' "$reply" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("message",""))' 2>/dev/null || true)
       fail_unverified "the service refused it: ${msg:-no reply within 6s}"
+    fi
+    # success:true only means the call was accepted. `result` is whether inclusion is now
+    # actually running -- it comes back false when a window is already open, so a refresh
+    # that changed nothing would otherwise report OPEN.
+    res=$(printf '%s' "$reply" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("result"))' 2>/dev/null || echo unknown)
+    if [ "$ACTION" = open ] && [ "$res" != True ]; then
+      fail_unverified "the service accepted the call but reported result=$res — inclusion did not start (a window may already be open; close it first)"
     fi
     ;;
 esac
