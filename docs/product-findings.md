@@ -45,9 +45,15 @@ Consequence: **nothing validates the topic.** A wrong node, a wrong command clas
 read-only property produces `queued: true`, a `succeeded` run, an agent log line saying
 the command was handled, and silence. That is the same failure shape as #415.
 
-## A gateway that has run commands cannot be deleted — open
+## A gateway that has run commands could not be deleted — fixed
 
-**[fleetforge#418](https://github.com/ykdynamics/fleetforge/issues/418) · open**
+**[fleetforge#418](https://github.com/ykdynamics/fleetforge/issues/418) · fixed;
+follow-up [fleetforge#420](https://github.com/ykdynamics/fleetforge/pull/420) keeps the
+command history when its gateway is deleted.** Exercised in this lab: retiring a stranded
+gateway record returns `archive 200`, `delete 200`
+([#6](https://github.com/ykdynamics/fleetforge-reference-lab/issues/6)).
+
+What it was:
 
 Rebuilding a gateway leaves a stale record, which the documentation says to retire
 deliberately. Archiving works; deleting fails on a foreign key from `commands`, so any

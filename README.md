@@ -4,11 +4,12 @@ A small, reproducible IoT lab you can build on your own desk: two Raspberry Pi g
 two radio protocols, two lamps — operated first **without** FleetForge, then **with** it,
 so the difference is something you observe rather than something you are told.
 
-> **Status: early.** This repository currently contains the lab contract — the guide
-> structure, the architecture and scope, the example inventory, the operator command
-> contract and the evidence rules. **The automation is not written yet.** Nothing here
-> provisions a host or switches a lamp today. See
-> [What exists today](#what-exists-today) before planning an evening around it.
+> **Status: R1 delivered (2026-09-26).** Every chapter has been run on real hardware:
+> two Raspberry Pi gateways, a Zigbee plug and a Z-Wave plug. That includes a clean
+> rebuild of both gateways from these instructions alone, and operation over TLS with a
+> pinned CA. Chapters 1 and 2 need nothing private. Chapters 3 to 5 need FleetForge
+> access, which is by invitation: see [Software access](docs/software-access.md). What
+> each result does and does not establish: [What exists today](#what-exists-today).
 
 ---
 
@@ -54,9 +55,9 @@ add FleetForge to that estate and need access you may not have; [Software access
 says what is needed and how to ask for it.
 
 Exact hardware models and the versions this lab has actually been run against are tracked
-in [Hardware and versions](docs/hardware-and-versions.md). That table is deliberately
-mostly `UNKNOWN` right now — it gets filled in when a procedure is run on real hardware,
-not before.
+in [Hardware and versions](docs/hardware-and-versions.md). A cell is filled in only when
+a procedure has been run on real hardware, never before. Two are still `UNKNOWN`, on
+purpose.
 
 ## The journey
 
@@ -96,8 +97,8 @@ plug and a Z-Wave plug — unless it says otherwise.
 | Operating a lamp through FleetForge | **Verified on both protocols** — human-observed |
 | Protocol-state backup with checksum | **Runnable** — `make radio-backup` |
 | The four resets | **Runnable** — `make scenario-restore` / `agent-remove` / `protocol-data-reset` / `host-reset` |
-| Clean-start rebuild from the docs alone | **Not yet done** — the remaining R1 gate |
-| TLS control plane with a pinned CA | **Not yet done** — the lab supports it in inventory; not exercised |
+| Clean-start rebuild from the docs alone | **Verified on both roles**: from `host-reset` to operating the lamp, using only the published instructions ([#6](https://github.com/ykdynamics/fleetforge-reference-lab/issues/6)) |
+| TLS control plane with a pinned CA | **Verified**: enrolment, heartbeat and switching both lamps over TLS with a pinned CA and client-certificate mTLS |
 
 The version and exercise matrices, with what each result does and does not establish, are
 in [Hardware and versions](docs/hardware-and-versions.md).
@@ -116,12 +117,13 @@ Worth knowing before you start, and stated here rather than discovered at chapte
 - **Metering behaviour differs by device and by field.** A lit lamp can truthfully report
   zero watts, and two fields in one payload can have different ages. Chapter 2 works
   through a real example.
-- **The control plane used so far is a local development deployment over plain HTTP.**
-  That is not the shape a real one has.
+- **The control plane the lab ran against is a local deployment on the gateways' own
+  network,** over TLS with a pinned CA and mTLS. A hosted control plane serving several
+  sites is a different shape, and not what this lab exercises.
 
 ## What the lab found
 
-Running it produced three findings in the product, none visible from reading code or from
+Running it produced four findings, none visible from reading code or from
 a green test suite — including one that made Z-Wave device operation impossible while
 every automated signal reported success. See [Product findings](docs/product-findings.md).
 
