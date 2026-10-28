@@ -1,0 +1,113 @@
+# Install the radio watchdog on one Zigbee gateway.
+#
+#   make radio-watchdog-install HOST=<alias> ROLE=zigbee
+#
+# Adds uhubctl, the watchdog script, its settings and a systemd timer. It does not
+# touch the protocol stack: no Compose file, no container is recreated, no pairing is
+# at risk. See docs/radio-watchdog.md for what the watchdog does and when not to use it.
+---
+- name: Install the radio watchdog on a lab gateway
+  hosts: all
+  become: true
+
+  vars:
+    role: "{{ hostvars[inventory_hostname].role }}"
+    radio_adapter: "{{ hostvars[inventory_hostname].radio_adapter }}"
+    radio_watchdog_silence_s: "{{ hostvars[inventory_hostname].radio_watchdog_silence_s | default(300) }}"
+    radio_watchdog_cooldown_s: "{{ hostvars[inventory_hostname].radio_watchdog_cooldown_s | default(3600) }}"
+    # A Raspberry Pi 4 gangs its USB port power across both hubs.
+    radio_watchdog_usb_hubs: "{{ hostvars[inventory_hostname].radio_watchdog_usb_hubs | default('1-1 2') }}"
+    radio_watchdog_reboot: "{{ hostvars[inventory_hostname].radio_watchdog_reboot | default(false) }}"
+    radio_watchdog_reboot_cooldown_s: "{{ hostvars[inventory_hostname].radio_watchdog_reboot_cooldown_s | default(43200) }}"
+
+  pre_tasks:
+    - name: Refuse to act on more than one host at a time
+      ansible.builtin.assert:
+        that: ansible_play_hosts | length == 1
+        fail_msg: >-
+          This playbook acts on one named host at a time, but
+          {{ ansible_play_hosts | length }} were selected
+          ({{ ansible_play_hosts | join(', ') }}). Pass --limit <host>.
+        quiet: true
+
+    - name: Only Zigbee gateways get this watchdog
+      ansible.builtin.assert:
+        that: role == 'zigbee'
+        fail_msg: >-
+          {{ inventory_hostname }} has role {{ role }}. The watchdog judges silence by
+          Zigbee2MQTT device topics; it is not written for Z-Wave JS.
+        quiet: true
+
+    - name: Require the radio adapter path
+      ansible.builtin.assert:
+        that: radio_adapter | default('') | length > 0
+        fail_msg: "{{ inventory_hostname }} has no radio_adapter set in the inventory."
+        quiet: true
+
+  tasks:
+    - name: Install uhubctl (USB port power control)
+      ansible.builtin.apt:
+        name: uhubctl
+        state: present
+        update_cache: true
+        cache_valid_time: 86400
+
+    - name: Create the watchdog directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+      loop:
+        - /usr/local/lib/ff-lab
+        - /etc/ff-lab
+
+    - name: Place the watchdog script
+      ansible.builtin.copy:
+        src: files/radio-watchdog.sh
+        dest: /usr/local/lib/ff-lab/radio-watchdog.sh
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Place the watchdog settings
+      ansible.builtin.template:
+        src: radio-watchdog.env.j2
+        dest: /etc/ff-lab/radio-watchdog.env
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Place the systemd units
+      ansible.builtin.template:
+        src: "{{ item }}.j2"
+        dest: "/etc/systemd/system/{{ item }}"
+        owner: root
+        group: root
+        mode: "0644"
+      loop:
+        - ff-lab-radio-watchdog.service
+        - ff-lab-radio-watchdog.timer
+      register: watchdog_units
+
+    - name: Enable and start the timer
+      ansible.builtin.systemd_service:
+        name: ff-lab-radio-watchdog.timer
+        enabled: true
+        state: started
+        daemon_reload: "{{ watchdog_units is changed }}"
+      # In --check the unit files were not really placed, so systemd cannot know them yet.
+      ignore_errors: "{{ ansible_check_mode }}"
+
+  post_tasks:
+    - name: Report what the watchdog would do now (dry run)
+      ansible.builtin.command:
+        cmd: /usr/local/lib/ff-lab/radio-watchdog.sh dry-run
+      register: watchdog_dry_run
+      changed_when: false
+      failed_when: false
+
+    - name: Show the dry run
+      ansible.builtin.debug:
+        msg: "{{ watchdog_dry_run.stdout_lines }}"

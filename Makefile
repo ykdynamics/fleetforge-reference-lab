@@ -10,7 +10,7 @@ HOST ?=
 ROLE ?=
 
 .DEFAULT_GOAL := help
-.PHONY: help check check-links check-examples test-preflight test-provision preflight provision-plan provision stack-config stack-up stack-status stack-logs stack-down radio-devices lamp-off lamp-on agent-plan agent-install agent-status radio-backup radio-join-open radio-join-close scenario-restore agent-remove protocol-data-reset radio-adapter-reset host-reset
+.PHONY: help check check-links check-examples test-preflight test-provision preflight provision-plan provision stack-config stack-up stack-status stack-logs stack-down radio-devices lamp-off lamp-on agent-plan agent-install agent-status radio-backup radio-join-open radio-join-close scenario-restore agent-remove protocol-data-reset radio-adapter-reset host-reset test-radio-watchdog radio-watchdog-install radio-watchdog-status radio-watchdog-dry-run radio-watchdog-force
 
 help: ## What this repository can actually run today
 	@echo 'FleetForge Reference Lab'
@@ -102,3 +102,18 @@ radio-join-open: ## Open the pairing window on ONE gateway, briefly (HOST= ROLE=
 
 radio-join-close: ## Close the pairing window (HOST= ROLE=)
 	@ACTION=close ./scripts/radio-join.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+test-radio-watchdog: ## Exercise the radio watchdog's decisions with fake tools (simulated, no gateway contacted)
+	@./scripts/test-radio-watchdog.sh
+
+radio-watchdog-install: ## Install the Zigbee radio watchdog and its timer; stack untouched (HOST= ROLE=zigbee)
+	@ACTION=install ./scripts/radio-watchdog.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+radio-watchdog-status: ## Watchdog timer, last checks and last recovery (HOST= ROLE=zigbee)
+	@ACTION=status ./scripts/radio-watchdog.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+radio-watchdog-dry-run: ## What a watchdog check would do now; changes nothing (HOST= ROLE=zigbee)
+	@ACTION=dry-run ./scripts/radio-watchdog.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"
+
+radio-watchdog-force: ## Power-cycle the Zigbee adapter now, a hardware test of the recovery (HOST= ROLE=zigbee)
+	@ACTION=force ./scripts/radio-watchdog.sh "$(HOST)" "$(ROLE)" "$(INVENTORY)"

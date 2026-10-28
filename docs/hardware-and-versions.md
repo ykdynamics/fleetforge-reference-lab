@@ -32,7 +32,8 @@ Status values: **Qualified** (this repository's procedure was run against it and
 | Zigbee2MQTT | 2.14.1 | Qualified (coordinator start) | Started; coordinator answered |
 | Z-Wave JS UI | 11.24.1 | Qualified (controller start) | Started; driver ready, controller identified |
 | zwave-js (driver) | 15.29.0 | Qualified (controller start) | Bundled with Z-Wave JS UI 11.24.1 |
-| Zigbee coordinator adapter | Sonoff ZBDongle-P (CC2652P, CP210x bridge) | Qualified (coordinator start) | Driver `zstack`; reports `ZStack3x0`, firmware revision 20210708 |
+| Zigbee coordinator adapter | Sonoff ZBDongle-P (CC2652P, CP210x bridge) | Qualified (coordinator start) | Driver `zstack`; reports `ZStack3x0`, firmware revision 20210708. Hung for five days in Oct 2026 (traffic stopped, USB link up) until power-cycled: see [radio-watchdog.md](radio-watchdog.md) |
+| uhubctl | 2.5.0 (Ubuntu package) | In use (radio watchdog) | Cuts and restores USB port power for the watchdog's coordinator power cycle |
 | Z-Wave controller adapter | Zooz ZST39 LR (800 Series Long Range) | Qualified (controller start) | Identified by zwave-js as node type **Controller** |
 | Zigbee wallplug | Sonoff S60ZBTPF | Qualified (paired, metering observed) | Reports live `power`/`current`; `voltage` refreshes only on explicit read |
 | Z-Wave wallplug | Fibaro FGWP-102 | Qualified (included, switched, metering observed) | Binary Switch CC 37 for control, Meter CC 49 for power |
