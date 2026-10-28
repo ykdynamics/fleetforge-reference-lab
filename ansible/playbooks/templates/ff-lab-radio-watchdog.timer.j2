@@ -1,0 +1,10 @@
+[Unit]
+Description=Run the FleetForge lab radio watchdog every minute after the previous check
+
+[Timer]
+OnBootSec=5min
+OnUnitInactiveSec=60s
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target

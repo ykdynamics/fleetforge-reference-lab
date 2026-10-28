@@ -37,6 +37,11 @@ that later work packages extend a shape rather than invent one per chapter.
 | `make protocol-data-reset HOST= ROLE= CONFIRM=` | **mutates** | Destroys the radio network and every pairing |
 | `make radio-adapter-reset HOST= ROLE= CONFIRM=` | **mutates** | Destroys the network held in the adapter itself |
 | `make host-reset HOST= CONFIRM=` | **mutates** | Destroys everything the lab installed on that host |
+| `make test-radio-watchdog` | reads | Exercises the radio watchdog's decisions with fake tools; no gateway contacted |
+| `make radio-watchdog-install HOST= ROLE=zigbee` | **mutates** | Installs uhubctl, the [radio watchdog](radio-watchdog.md) and its timer; the protocol stack is untouched |
+| `make radio-watchdog-status HOST= ROLE=zigbee` | reads | Timer state, the last checks and the last recovery |
+| `make radio-watchdog-dry-run HOST= ROLE=zigbee` | reads | What a check would do now (waits up to the silence window) |
+| `make radio-watchdog-force HOST= ROLE=zigbee` | **mutates** | Power-cycles the Zigbee adapter now: the hardware test of the recovery |
 
 `make check` exits non-zero on the first failing check and prints the offending file and
 line. It touches no host and no network.

@@ -1,0 +1,12 @@
+[Unit]
+Description=FleetForge lab radio watchdog (restart or power-cycle a silent Zigbee coordinator)
+Documentation=https://github.com/ykdynamics/fleetforge-reference-lab/blob/main/docs/radio-watchdog.md
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/ff-lab/radio-watchdog.sh check
+# One check waits up to the silence window for a device message, then may power-cycle.
+TimeoutStartSec={{ radio_watchdog_silence_s | int + 180 }}
+SuccessExitStatus=1
