@@ -29,7 +29,10 @@ case "$1" in
   *) exit 0 ;;
 esac
 EOF
+# The fakes must contain a literal $* and $CALLS, expanded when they run.
+# shellcheck disable=SC2016
 printf '#!/usr/bin/env bash\necho "uhubctl $*" >> "$CALLS"\n' > "$T/bin/uhubctl"
+# shellcheck disable=SC2016
 printf '#!/usr/bin/env bash\necho "systemctl $*" >> "$CALLS"\n' > "$T/bin/systemctl"
 printf '#!/usr/bin/env bash\nexit 0\n' > "$T/bin/sleep"
 chmod +x "$T/bin/"*
@@ -43,6 +46,16 @@ run() { # run <mode> [VAR=value ...]: fresh call log, shared state dir
     bash "$WATCHDOG" "$mode" 2>&1 || true   # a still-silent check exits 1 on purpose
 }
 calls() { cat "$T/calls"; }
+says() { # says <name> <fixed text expected in the last $out>
+  if grep -qF -- "$2" <<<"$out"; then ok "$1"; else bad "$1" "$out"; fi
+}
+state_is() { # state_is <name> <grep -E pattern for the recovery record, or "absent">
+  local f="$T/state/recovery"
+  if [ "$2" = absent ]; then
+    if [ ! -e "$f" ]; then ok "$1"; else bad "$1" "$(cat "$f")"; fi
+  elif grep -qE -- "$2" "$f" 2>/dev/null; then ok "$1"
+  else bad "$1" "$(cat "$f" 2>&1)"; fi
+}
 expect() { # expect <name> <grep -E pattern in calls> [absent]
   if [ "${3:-}" = absent ]; then
     if grep -qE "$2" "$T/calls"; then bad "$1" "$(calls)"; else ok "$1"; fi
@@ -55,7 +68,7 @@ echo '== radio watchdog decisions (fake tools, no gateway contacted) =='
 
 rm -f "$T/adapter"
 out=$(run check)
-grep -q 'is absent' <<<"$out" && ok 'adapter absent: reports and waits' || bad 'adapter absent: reports and waits' "$out"
+says 'adapter absent: reports and waits' 'is absent'
 expect 'adapter absent: no docker or USB action' 'start|stop|uhubctl' absent
 
 touch "$T/adapter"
@@ -65,7 +78,7 @@ expect 'container exited 2: no USB power cycle' 'uhubctl' absent
 
 out=$(run check FAKE_RUNNING=false FAKE_EXIT=0)
 expect 'container stopped cleanly (exit 0, a deliberate stop): left alone' 'start|uhubctl' absent
-grep -q 'deliberate stop' <<<"$out" && ok 'clean stop: says why it is left alone' || bad 'clean stop: says why it is left alone' "$out"
+says 'clean stop: says why it is left alone' 'deliberate stop'
 
 out=$(run check FAKE_RUNNING=missing)
 expect 'container missing: no action' 'start|stop|uhubctl' absent
@@ -73,11 +86,11 @@ expect 'container missing: no action' 'start|stop|uhubctl' absent
 rm -rf "$T/state"
 out=$(run check FAKE_BROKER=false)
 expect 'broker stopped: silence not judged, no power cycle' 'mosquitto_sub|stop|uhubctl' absent
-grep -q 'cannot be judged' <<<"$out" && ok 'broker stopped: says so' || bad 'broker stopped: says so' "$out"
+says 'broker stopped: says so' 'cannot be judged'
 
 rm -rf "$T/state"
 out=$(run check FAKE_TRAFFIC=1)
-grep -q healthy <<<"$out" && ok 'device traffic: healthy' || bad 'device traffic: healthy' "$out"
+says 'device traffic: healthy' 'healthy'
 expect 'healthy: no stop, start or USB action' 'stop|start|uhubctl' absent
 expect 'healthy: waits only for non-retained messages' 'mosquitto_sub -R -t zigbee2mqtt/\+ -C 1 -W 300'
 
@@ -88,11 +101,11 @@ expect 'silent: cuts power on hub 1-1' '^uhubctl -l 1-1 -a 0$'
 expect 'silent: cuts power on hub 2 (Pi 4 gangs both)' '^uhubctl -l 2 -a 0$'
 expect 'silent: restores power' '^uhubctl -l 1-1 -a 1$'
 expect 'silent: starts Zigbee2MQTT again' '^docker start ff-lab-zigbee2mqtt$'
-grep -q ' usb-cycle$' "$T/state/recovery" && ok 'silent: records the recovery' || bad 'silent: records the recovery' "$(cat "$T/state/recovery" 2>&1)"
+state_is 'silent: records the recovery' ' usb-cycle$'
 
 out=$(run check)
 expect 'still silent inside the cool-down: no second power cycle' 'uhubctl|stop' absent
-grep -q 'next allowed in' <<<"$out" && ok 'cool-down: says when' || bad 'cool-down: says when' "$out"
+says 'cool-down: says when' 'next allowed in'
 expect 'cool-down, reboot not enabled: no reboot' 'systemctl reboot' absent
 
 run check REBOOT=1 >/dev/null
@@ -103,15 +116,15 @@ expect 'reboot cool-down: no second reboot' 'systemctl reboot' absent
 rm -rf "$T/state"
 out=$(run dry-run)
 expect 'dry-run: changes nothing' 'stop|start|uhubctl|reboot' absent
-grep -q 'would cut USB power' <<<"$out" && ok 'dry-run: reports the power cycle it would do' || bad 'dry-run: reports the power cycle it would do' "$out"
-[ ! -e "$T/state/recovery" ] && ok 'dry-run: records no recovery' || bad 'dry-run: records no recovery' "$(cat "$T/state/recovery")"
+says 'dry-run: reports the power cycle it would do' 'would cut USB power'
+state_is 'dry-run: records no recovery' absent
 
 run force FAKE_TRAFFIC=1 >/dev/null
 expect 'force: power-cycles even with traffic' '^uhubctl -l 1-1 -a 0$'
 
 rm -rf "$T/state"
 out=$(run check UHUBCTL=/nonexistent/uhubctl)
-grep -q 'uhubctl is not installed' <<<"$out" && ok 'without uhubctl: says it can only restart' || bad 'without uhubctl: says it can only restart' "$out"
+says 'without uhubctl: says it can only restart' 'uhubctl is not installed'
 
 printf '\n%d passed, %d failed\n' "$passed" "$failed"
 [ "$failed" -eq 0 ]

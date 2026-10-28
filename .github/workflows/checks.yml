@@ -55,6 +55,14 @@ jobs:
       - name: Provisioning guards and failure paths (simulated)
         run: make test-provision
 
+      - name: Radio watchdog decisions (simulated)
+        run: |
+          shellcheck ansible/playbooks/files/radio-watchdog.sh
+          ANSIBLE_CONFIG=ansible/ansible.cfg ansible-playbook \
+            -i inventory/inventory.example.yml \
+            --syntax-check ansible/playbooks/gateway-radio-watchdog.yml
+          make test-radio-watchdog
+
       - name: Example inventory resolves as an Ansible inventory
         run: |
           ansible-inventory -i inventory/inventory.example.yml --list > /dev/null

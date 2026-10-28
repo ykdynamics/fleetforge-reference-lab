@@ -59,8 +59,8 @@ act() { # act <description> <command...>: run it (output discarded) unless this 
 }
 
 wait_for_adapter() {
-  local i
-  for i in $(seq 30); do [ -e "$ADAPTER" ] && return 0; "$SLEEP" 1; done
+  local _
+  for _ in $(seq 30); do [ -e "$ADAPTER" ] && return 0; "$SLEEP" 1; done
   return 1
 }
 
